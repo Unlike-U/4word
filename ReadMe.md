@@ -1,14 +1,13 @@
 # 4WORD - Underground Secure Messaging Platform
 
 An award-winning, mobile-first, terminal-aesthetic secure messaging application built with Vanilla JavaScript, advanced encryption, and zero client-side state exposure.
-██╗ ██╗██╗ ██╗ ██████╗ ██████╗ ██████╗
+``` ██╗ ██╗██╗ ██╗ ██████╗ ██████╗ ██████╗
 ██║ ██║██║ ██║██╔═══██╗██╔══██╗██╔══██╗
 ███████║██║ █╗ ██║██║ ██║██████╔╝██║ ██║
 ╚════██║██║███╗██║██║ ██║██╔══██╗██║ ██║
 ██║╚███╔███╔╝╚██████╔╝██║ ██║██████╔╝
 ╚═╝ ╚══╝╚══╝ ╚═════╝ ╚═╝ ╚═╝╚═════╝
-
-text
+```
 
 
 ## 🔥 Features
@@ -72,17 +71,20 @@ npm run build
 
 # Watch mode
 npm run watch
+```
+
 🎮 Usage
 Demo Accounts
 Login with pre-configured accounts:
 
-text
 
 Username: @alice
 Password: password123
 
 Username: @bob  
 Password: password123
+
+
 Creating an Account
 Enter username (must start with @)
 Enter passphrase (minimum 6 characters)
