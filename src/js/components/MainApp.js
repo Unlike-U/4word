@@ -822,66 +822,70 @@ renderConversationsList() {
     this.render();
   }
 
-  showModal(type, data = {}) {
-    const modalRoot = document.getElementById('modal-root');
-    modalRoot.innerHTML = '';
+showModal(type, data = {}) {
+  const modalRoot = document.getElementById('modal-root');
+  modalRoot.innerHTML = '';
 
-    const overlay = createElement('div', 'modal-overlay-terminal');
-    const modal = createElement('div', 'modal-terminal');
+  const overlay = createElement('div', 'modal-overlay-terminal');
+  const modal = createElement('div', 'modal-terminal');
 
-    overlay.appendChild(modal);
-    
-    const header = createElement('div', 'modal-header-terminal');
-    const title = createElement('h3', 'modal-title-terminal');
-    const closeBtn = createElement('button', 'btn-close-modal', '× CLOSE');
+  overlay.appendChild(modal);
+  
+  const header = createElement('div', 'modal-header-terminal');
+  const title = createElement('h3', 'modal-title-terminal');
+  const closeBtn = createElement('button', 'btn-close-modal', '× CLOSE');
 
-    let titleText = '';
-    if (type === 'inbox') titleText = '📬 INBOX';
-    if (type === 'qr') titleText = '📱 QR CODE';
-    if (type === 'conversation') titleText = `💬 ${data.conversation.user}`;
-    if (type === 'steganography') titleText = '🖼️ STEGANOGRAPHY';
+  let titleText = '';
+  if (type === 'inbox') titleText = '📬 INBOX';
+  if (type === 'qr') titleText = '📱 QR CODE';
+  if (type === 'conversation') titleText = `💬 ${data.conversation.user}`;
+  if (type === 'steganography') titleText = '🖼️ STEGANOGRAPHY';
 
-    title.textContent = titleText;
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    modal.appendChild(header);
+  title.textContent = titleText;
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+  modal.appendChild(header);
 
-    const content = createElement('div', 'modal-content-terminal');
+  const content = createElement('div', 'modal-content-terminal');
 
-    if (type === 'inbox') {
-      const inboxView = new InboxView(content, this.state, data.messages);
-    } else if (type === 'qr') {
-      content.innerHTML = `
-        <div class="qr-view-terminal">
-          <div class="qr-container">
-            <img src="${data.qrImage}" alt="QR Code" class="qr-image" />
-          </div>
-          <p class="qr-description">Scan with compatible device to decrypt</p>
-          <div class="qr-data-box">
-            <div class="data-header">ENCRYPTED DATA:</div>
-            <pre class="data-content">${data.data.slice(0, 200)}${data.data.length > 200 ? '...' : ''}</pre>
-          </div>
+  if (type === 'inbox') {
+    const inboxView = new InboxView(content, this.state, data.messages);
+  } else if (type === 'qr') {
+    content.innerHTML = `
+      <div class="qr-view-terminal">
+        <div class="qr-container">
+          <img src="${data.qrImage}" alt="QR Code" class="qr-image" />
         </div>
-      `;
-    } else if (type === 'conversation') {
-      this.renderConversationModal(content, data.conversation);
-    } else if (type === 'steganography') {
-      new SteganographyView(content, this.state, (fileData) => {
-        this.state.setState('ui.attachedFile', fileData);
-        alert('✓ Stego image attached');
-        this.closeModal();
-        this.render();
-      });
-    }
-
-    modal.appendChild(content);
-    modalRoot.appendChild(overlay);
-
-    closeBtn.addEventListener('click', () => this.closeModal());
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) this.closeModal();
+        <p class="qr-description">Scan with compatible device to decrypt</p>
+        <div class="qr-data-box">
+          <div class="data-header">ENCRYPTED DATA:</div>
+          <pre class="data-content">${data.data.slice(0, 200)}${data.data.length > 200 ? '...' : ''}</pre>
+        </div>
+      </div>
+    `;
+  } else if (type === 'conversation') {
+    this.renderConversationModal(content, data.conversation);
+  } else if (type === 'steganography') {
+    // THIS IS THE ONLY PART YOU NEED TO CHECK/UPDATE
+    new SteganographyView(content, this.state, (fileData) => {
+      // This callback is called when "ENCODE & ATTACH" is clicked
+      this.state.setState('ui.attachedFile', fileData);
+      const ui = this.state.getState('ui');
+      this.state.setState('ui.messageText', ui.messageText + `\n[🖼️ ${fileData.name}]`);
+      alert('✓ Stego image attached to message!');
+      this.closeModal();
+      this.render();
     });
   }
+
+  modal.appendChild(content);
+  modalRoot.appendChild(overlay);
+
+  closeBtn.addEventListener('click', () => this.closeModal());
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) this.closeModal();
+  });
+}
 
   renderConversationModal(container, conversation) {
     const currentUser = this.state.getState('currentUser');
