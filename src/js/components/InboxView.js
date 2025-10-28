@@ -195,20 +195,31 @@ export class InboxView {
 
   renderAttachment(fileData) {
     if (fileData.type.startsWith('image/')) {
-      return `
-        <div class="attachment-box">
-          <div class="attachment-header">ATTACHMENT: IMAGE</div>
-          <div class="attachment-image-wrap">
-            <img 
-              src="${fileData.data}" 
-              alt="${fileData.name}" 
-              class="attachment-image-terminal"
-            />
-          </div>
-          <div class="attachment-name">${fileData.name}</div>
+    // Check if it's a stego image
+    const isStegoImage = fileData.name.startsWith('stego_');
+    
+    return `
+      <div class="attachment-box">
+        <div class="attachment-header">
+          ATTACHMENT: ${isStegoImage ? 'STEGO IMAGE 🔐' : 'IMAGE'}
         </div>
-      `;
-    } else if (fileData.type.startsWith('audio/')) {
+        <div class="attachment-image-wrap">
+          <img 
+            src="${fileData.data}" 
+            alt="${fileData.name}" 
+            class="attachment-image-terminal"
+          />
+        </div>
+        <div class="attachment-name">${fileData.name}</div>
+        ${isStegoImage ? `
+          <div class="stego-hint">
+            💡 This image contains a hidden message. Download and decode using the Stego tool.
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  else if (fileData.type.startsWith('audio/')) {
       return `
         <div class="attachment-box">
           <div class="attachment-header">ATTACHMENT: AUDIO</div>
