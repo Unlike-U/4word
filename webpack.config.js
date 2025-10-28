@@ -7,21 +7,44 @@ module.exports = (env, argv) => {
 
   return {
     entry: './src/js/index.js',
+    
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: 'js/[name].[contenthash].js',
       clean: true,
       publicPath: '/'
     },
-    devtool: isDevelopment ? 'eval-source-map' : false,
+    
+    devtool: isDevelopment ? 'source-map' : false,
+    
     devServer: {
-      static: './dist',
+      static: {
+        directory: path.join(__dirname, 'dist')
+      },
       hot: true,
-      port: 3000,
-      open: true
+      port: 9000,
+      host: '0.0.0.0',
+      allowedHosts: 'all',
+      client: {
+        webSocketURL: {
+          hostname: '0.0.0.0',
+          pathname: '/ws',
+          port: 9000,
+          protocol: 'ws'
+        },
+        overlay: {
+          warnings: false,
+          errors: true
+        }
+      },
+      compress: true,
+      historyApiFallback: true,
+      open: false
     },
+    
     module: {
       rules: [
+        // JavaScript
         {
           test: /\.js$/,
           exclude: /node_modules/,
@@ -32,20 +55,44 @@ module.exports = (env, argv) => {
             }
           }
         },
+        
+        // SCSS/CSS
         {
           test: /\.scss$/,
           use: [
             isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
             'css-loader',
-            'sass-loader'
+            {
+              loader: 'sass-loader',
+              options: {
+                sassOptions: {
+                  silenceDeprecations: ['legacy-js-api']
+                }
+              }
+            }
           ]
         },
+        
+        // Images
         {
-          test: /\.(png|svg|jpg|jpeg|gif)$/i,
-          type: 'asset/resource'
+          test: /\.(png|svg|jpg|jpeg|gif|webp)$/i,
+          type: 'asset/resource',
+          generator: {
+            filename: 'images/[hash][ext][query]'
+          }
+        },
+        
+        // Fonts
+        {
+          test: /\.(woff|woff2|eot|ttf|otf)$/i,
+          type: 'asset/resource',
+          generator: {
+            filename: 'fonts/[hash][ext][query]'
+          }
         }
       ]
     },
+    
     plugins: [
       new HtmlWebpackPlugin({
         template: './src/index.html',
@@ -55,6 +102,7 @@ module.exports = (env, argv) => {
         filename: 'css/[name].[contenthash].css'
       })
     ],
+    
     optimization: {
       splitChunks: {
         chunks: 'all',
@@ -66,6 +114,10 @@ module.exports = (env, argv) => {
           }
         }
       }
+    },
+    
+    performance: {
+      hints: false
     }
   };
 };
