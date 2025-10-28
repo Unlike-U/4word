@@ -382,126 +382,180 @@ export class MainApp {
     );
   }
 
-  setupEventListeners() {
-    // Tab navigation
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const tabName = tab.dataset.tab;
-        this.activeTab = tabName;
-        this.render();
-      });
+setupEventListeners() {
+  // Tab navigation
+  const navTabs = document.querySelectorAll('.nav-tab');
+  navTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.tab;
+      this.activeTab = tabName;
+      this.render();
     });
+  });
 
-    // Header buttons
-    document.getElementById('networkToggle')?.addEventListener('click', () => {
+  // Header buttons
+  const networkToggle = document.getElementById('networkToggle');
+  if (networkToggle) {
+    networkToggle.addEventListener('click', () => {
       const ui = this.state.getState('ui');
       this.state.setState('ui.networkEnabled', !ui.networkEnabled);
       this.render();
     });
+  }
 
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
       if (confirm('Exit secure session?')) {
         this.state.setState('currentUser', null);
         this.state.setState('ui.networkEnabled', false);
       }
     });
+  }
 
-    // Settings buttons
-    document.querySelectorAll('[data-security]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.state.setState('ui.securityLevel', btn.dataset.security);
-        this.render();
-      });
+  // Settings buttons
+  document.querySelectorAll('[data-security]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      this.state.setState('ui.securityLevel', btn.dataset.security);
+      this.render();
     });
+  });
 
-    document.querySelectorAll('[data-privacy]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const level = btn.dataset.privacy;
-        this.state.setState('ui.privacyLevel', level);
-        if (level === 'public') {
-          this.state.setState('ui.recipient', '@everyone');
-        } else {
-          const ui = this.state.getState('ui');
-          if (ui.recipient === '@everyone') {
-            this.state.setState('ui.recipient', '');
-          }
+  document.querySelectorAll('[data-privacy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const level = btn.dataset.privacy;
+      this.state.setState('ui.privacyLevel', level);
+      if (level === 'public') {
+        this.state.setState('ui.recipient', '@everyone');
+      } else {
+        const ui = this.state.getState('ui');
+        if (ui.recipient === '@everyone') {
+          this.state.setState('ui.recipient', '');
         }
-        this.render();
-      });
+      }
+      this.render();
     });
+  });
 
-    document.querySelectorAll('[data-persistence]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.state.setState('ui.persistenceLevel', btn.dataset.persistence);
-        this.render();
-      });
+  document.querySelectorAll('[data-persistence]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      this.state.setState('ui.persistenceLevel', btn.dataset.persistence);
+      this.render();
     });
+  });
 
-    // Compose inputs
-    document.getElementById('recipient')?.addEventListener('input', (e) => {
+  // Compose inputs
+  const recipientInput = document.getElementById('recipient');
+  if (recipientInput) {
+    recipientInput.addEventListener('input', (e) => {
       this.state.setState('ui.recipient', e.target.value);
     });
+  }
 
-    document.getElementById('encryptKey')?.addEventListener('input', (e) => {
+  const encryptKeyInput = document.getElementById('encryptKey');
+  if (encryptKeyInput) {
+    encryptKeyInput.addEventListener('input', (e) => {
       this.state.setState('ui.encryptKey', e.target.value);
     });
+  }
 
-    document.getElementById('encryptKey2')?.addEventListener('input', (e) => {
+  const encryptKey2Input = document.getElementById('encryptKey2');
+  if (encryptKey2Input) {
+    encryptKey2Input.addEventListener('input', (e) => {
       this.state.setState('ui.encryptKey2', e.target.value);
     });
+  }
 
-    document.getElementById('messageText')?.addEventListener('input', (e) => {
+  const messageTextInput = document.getElementById('messageText');
+  if (messageTextInput) {
+    messageTextInput.addEventListener('input', (e) => {
       this.state.setState('ui.messageText', e.target.value);
     });
+  }
 
-    // Action buttons
-    document.getElementById('sendBtn')?.addEventListener('click', () => this.sendMessage());
-    document.getElementById('inboxBtn')?.addEventListener('click', () => this.viewInbox());
-    document.getElementById('fileInput')?.addEventListener('change', (e) => this.handleFileAttach(e));
-    document.getElementById('removeFile')?.addEventListener('click', () => {
+  // Action buttons
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', () => this.sendMessage());
+  }
+
+  const inboxBtn = document.getElementById('inboxBtn');
+  if (inboxBtn) {
+    inboxBtn.addEventListener('click', () => this.viewInbox());
+  }
+
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => this.handleFileAttach(e));
+  }
+
+  const removeFileBtn = document.getElementById('removeFile');
+  if (removeFileBtn) {
+    removeFileBtn.addEventListener('click', () => {
       this.state.setState('ui.attachedFile', null);
       this.render();
     });
+  }
 
-    // Voice recording
-    const voiceBtn = document.getElementById('voiceBtn');
-    if (voiceBtn) {
-      voiceBtn.addEventListener('mousedown', () => this.startVoiceRecording());
-      voiceBtn.addEventListener('mouseup', () => this.stopVoiceRecording());
-      voiceBtn.addEventListener('mouseleave', () => this.stopVoiceRecording());
-      voiceBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.startVoiceRecording();
-      });
-      voiceBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        this.stopVoiceRecording();
-      });
-    }
+  // Voice recording
+  const voiceBtn = document.getElementById('voiceBtn');
+  if (voiceBtn) {
+    voiceBtn.addEventListener('mousedown', () => this.startVoiceRecording());
+    voiceBtn.addEventListener('mouseup', () => this.stopVoiceRecording());
+    voiceBtn.addEventListener('mouseleave', () => this.stopVoiceRecording());
+    voiceBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.startVoiceRecording();
+    });
+    voiceBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.stopVoiceRecording();
+    });
+  }
 
-    document.getElementById('locationBtn')?.addEventListener('click', () => this.shareLocation());
-    document.getElementById('qrBtn')?.addEventListener('click', () => this.generate2DEQR());
-    document.getElementById('stegoBtn')?.addEventListener('click', () => this.openSteganography());
+  const locationBtn = document.getElementById('locationBtn');
+  if (locationBtn) {
+    locationBtn.addEventListener('click', () => this.shareLocation());
+  }
 
-    // Commands
-    const commandInput = document.getElementById('commandInput');
-    commandInput?.addEventListener('input', (e) => {
+  const qrBtn = document.getElementById('qrBtn');
+  if (qrBtn) {
+    qrBtn.addEventListener('click', () => this.generate2DEQR());
+  }
+
+  const stegoBtn = document.getElementById('stegoBtn');
+  if (stegoBtn) {
+    stegoBtn.addEventListener('click', () => this.openSteganography());
+  }
+
+  // Commands
+  const commandInput = document.getElementById('commandInput');
+  if (commandInput) {
+    commandInput.addEventListener('input', (e) => {
       this.state.setState('ui.commandInput', e.target.value);
     });
 
-    commandInput?.addEventListener('keypress', (e) => {
+    commandInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         this.executeCommand();
       }
     });
+  }
 
-    document.getElementById('executeCmd')?.addEventListener('click', () => this.executeCommand());
-    document.getElementById('clearResult')?.addEventListener('click', () => {
+  const executeCmdBtn = document.getElementById('executeCmd');
+  if (executeCmdBtn) {
+    executeCmdBtn.addEventListener('click', () => this.executeCommand());
+  }
+
+  const clearResultBtn = document.getElementById('clearResult');
+  if (clearResultBtn) {
+    clearResultBtn.addEventListener('click', () => {
       this.state.setState('ui.commandResult', '');
       this.render();
     });
   }
+}
 
   async sendMessage() {
     const ui = this.state.getState('ui');
