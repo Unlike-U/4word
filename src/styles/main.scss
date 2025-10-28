@@ -1388,3 +1388,14 @@ body {
     transform: scale(0.98);
   }
 }
+
+.stego-hint {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: rgba($warning, 0.1);
+  border: 1px solid $warning;
+  border-radius: $radius-sm;
+  font-size: 12px;
+  color: darken($warning, 20%);
+  text-align: center;
+}
