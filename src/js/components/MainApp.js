@@ -270,7 +270,17 @@ export class MainApp {
       this.state.setState('ui.commandResult', '');
       this.render();
     });
+
+    this.attachListener('clearDataBtn', 'click', () => {
+  if (confirm('⚠️ Clear all data? This will remove all messages and log you out.')) {
+    localStorage.clear();
+    alert('✓ Data cleared! Reloading...');
+    location.reload();
   }
+});
+  }
+
+  
 
   attachListener(elementId, eventType, handler) {
     const element = document.getElementById(elementId);
