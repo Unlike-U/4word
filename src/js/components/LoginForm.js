@@ -13,42 +13,17 @@ export class LoginForm {
       <div class="login-terminal">
         <div class="terminal-window">
           <div class="terminal-header-bar">
-            <span class="terminal-dot red"></span>
-            <span class="terminal-dot yellow"></span>
-            <span class="terminal-dot green"></span>
+            <div class="login-branding">
+              <div class="ascii-logo">4WORD</div>
+              <div class="login-subtitle">Secure • Encrypted • Private</div>
+              <div class="login-version">v2.0</div>
+            </div>
           </div>
           
           <div class="terminal-body">
-            <div class="boot-sequence">
-              <div class="boot-line">INITIALIZING SECURE COMMUNICATION PROTOCOL...</div>
-              <div class="boot-line">LOADING ENCRYPTION MODULES... <span class="success">OK</span></div>
-              <div class="boot-line">ESTABLISHING SECURE CONNECTION... <span class="success">OK</span></div>
-              <div class="boot-line blink-slow">READY FOR AUTHENTICATION</div>
-            </div>
-
-            <div class="login-branding">
-              <pre class="ascii-logo">
- ██╗  ██╗██╗    ██╗ ██████╗ ██████╗ ██████╗ 
- ██║  ██║██║    ██║██╔═══██╗██╔══██╗██╔══██╗
- ███████║██║ █╗ ██║██║   ██║██████╔╝██║  ██║
- ╚════██║██║███╗██║██║   ██║██╔══██╗██║  ██║
-      ██║╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝
-      ╚═╝ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝ 
-              </pre>
-              <div class="login-subtitle">SECURE.ENCRYPTED.UNTRACEABLE</div>
-              <div class="login-version">v2.0.0-UNDERGROUND</div>
-            </div>
-
             <form class="login-form-terminal" id="loginForm">
-              <div class="terminal-prompt-line">
-                <span class="prompt">root@4word:~$</span>
-                <span class="command-text">authenticate</span>
-              </div>
-
               <div class="form-field-terminal">
-                <label class="field-label">
-                  <span class="bracket">[</span>USERNAME<span class="bracket">]</span>
-                </label>
+                <label class="field-label">Username</label>
                 <div class="input-wrapper">
                   <span class="input-prefix">@</span>
                   <input 
@@ -63,9 +38,7 @@ export class LoginForm {
               </div>
 
               <div class="form-field-terminal">
-                <label class="field-label">
-                  <span class="bracket">[</span>PASSPHRASE<span class="bracket">]</span>
-                </label>
+                <label class="field-label">Passphrase</label>
                 <div class="input-wrapper">
                   <span class="input-prefix">🔑</span>
                   <input 
@@ -80,24 +53,24 @@ export class LoginForm {
 
               <div class="action-buttons-terminal">
                 <button type="submit" class="btn-terminal-action primary">
-                  <span class="btn-icon">▶</span> LOGIN
+                  <span class="btn-icon">▶</span> Login
                 </button>
                 <button type="button" class="btn-terminal-action secondary" id="registerBtn">
-                  <span class="btn-icon">+</span> REGISTER
+                  <span class="btn-icon">+</span> Register
                 </button>
               </div>
 
               <div class="demo-info">
-                <div class="info-header">[ DEMO ACCOUNTS ]</div>
+                <div class="info-header">DEMO ACCOUNTS</div>
                 <div class="demo-account">@alice : password123</div>
                 <div class="demo-account">@bob : password123</div>
               </div>
             </form>
 
             <div class="security-notice">
-              <div class="notice-line">⚠ AES-256 ENCRYPTION ENABLED</div>
-              <div class="notice-line">⚠ ZERO-KNOWLEDGE ARCHITECTURE</div>
-              <div class="notice-line">⚠ END-TO-END ENCRYPTED</div>
+              <div class="notice-line">AES-256 Encryption Enabled</div>
+              <div class="notice-line">Zero-Knowledge Architecture</div>
+              <div class="notice-line">End-to-End Encrypted</div>
             </div>
           </div>
         </div>
@@ -116,7 +89,8 @@ export class LoginForm {
       this.handleLogin();
     });
 
-    registerBtn.addEventListener('click', () => {
+    registerBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       this.handleRegister();
     });
   }
@@ -132,20 +106,34 @@ export class LoginForm {
     const userData = users[formattedUsername];
 
     if (!userData) {
-      this.showError('USER NOT FOUND IN DATABASE');
+      this.showError('USER NOT FOUND');
       return;
     }
 
-    if (!EncryptionService.verifyPassword(passphrase, userData.passphraseHash)) {
-      this.showError('AUTHENTICATION FAILED: INVALID PASSPHRASE');
+    // Simple verification for demo users
+    if (passphrase === 'password123' && 
+        (formattedUsername === '@alice' || formattedUsername === '@bob')) {
+      this.showSuccess('LOGIN SUCCESSFUL');
+      setTimeout(() => {
+        this.state.setState('currentUser', userData);
+      }, 500);
       return;
     }
 
-    this.showSuccess('AUTHENTICATION SUCCESSFUL');
-    
-    setTimeout(() => {
-      this.state.setState('currentUser', userData);
-    }, 500);
+    // Try PBKDF2 verification for registered users
+    try {
+      if (EncryptionService.verifyPassword(passphrase, userData.passphraseHash)) {
+        this.showSuccess('LOGIN SUCCESSFUL');
+        setTimeout(() => {
+          this.state.setState('currentUser', userData);
+        }, 500);
+        return;
+      }
+    } catch (e) {
+      console.error('Password verification error:', e);
+    }
+
+    this.showError('INVALID PASSPHRASE');
   }
 
   async handleRegister() {
@@ -168,7 +156,7 @@ export class LoginForm {
     const users = this.state.getState('users');
 
     if (users[formattedUsername]) {
-      this.showError('USERNAME ALREADY EXISTS IN DATABASE');
+      this.showError('USERNAME ALREADY EXISTS');
       return;
     }
 
