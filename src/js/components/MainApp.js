@@ -12,10 +12,9 @@ export class MainApp {
     this.commandService = new CommandService(stateManager);
     this.mediaRecorder = null;
     this.audioChunks = [];
-    this.activeTab = 'feed'; // feed, compose, commands
+    this.activeTab = 'feed';
     
     this.render();
-    this.setupEventListeners();
   }
 
   render() {
@@ -23,12 +22,12 @@ export class MainApp {
     const ui = this.state.getState('ui');
     
     this.container.innerHTML = `
-      <div class="app-container">
-        <!-- Terminal Header -->
+      <div class="app-container" id="appContainer">
+        <!-- Header -->
         <header class="terminal-header">
           <div class="terminal-bar">
             <div class="terminal-title">
-              <span class="terminal-prompt">root@4word:~$</span>
+              <span class="terminal-prompt">4WORD</span>
               <span class="terminal-user">${currentUser.username}</span>
             </div>
             <div class="terminal-controls">
@@ -36,22 +35,24 @@ export class MainApp {
                 <span class="status-dot"></span>
                 ${ui.networkEnabled ? 'ONLINE' : 'OFFLINE'}
               </button>
-              <button class="terminal-btn logout" id="logoutBtn">EXIT</button>
+              <button class="terminal-btn logout" id="logoutBtn">
+                EXIT
+              </button>
             </div>
           </div>
         </header>
 
         <!-- Mobile Tab Navigation -->
         <nav class="mobile-nav">
-          <button class="nav-tab ${this.activeTab === 'feed' ? 'active' : ''}" data-tab="feed">
+          <button class="nav-tab ${this.activeTab === 'feed' ? 'active' : ''}" id="tabFeed">
             <span class="nav-icon">📡</span>
             <span class="nav-label">FEED</span>
           </button>
-          <button class="nav-tab ${this.activeTab === 'compose' ? 'active' : ''}" data-tab="compose">
+          <button class="nav-tab ${this.activeTab === 'compose' ? 'active' : ''}" id="tabCompose">
             <span class="nav-icon">✉️</span>
             <span class="nav-label">COMPOSE</span>
           </button>
-          <button class="nav-tab ${this.activeTab === 'commands' ? 'active' : ''}" data-tab="commands">
+          <button class="nav-tab ${this.activeTab === 'commands' ? 'active' : ''}" id="tabCommands">
             <span class="nav-icon">⚡</span>
             <span class="nav-label">CMD</span>
           </button>
@@ -59,18 +60,15 @@ export class MainApp {
 
         <!-- Main Content -->
         <main class="terminal-content">
-          <!-- Feed Tab -->
-          <section class="content-tab ${this.activeTab === 'feed' ? 'active' : ''}" data-tab-content="feed">
+          <section class="content-tab ${this.activeTab === 'feed' ? 'active' : ''}" id="feedTab">
             ${this.renderFeed()}
           </section>
 
-          <!-- Compose Tab -->
-          <section class="content-tab ${this.activeTab === 'compose' ? 'active' : ''}" data-tab-content="compose">
+          <section class="content-tab ${this.activeTab === 'compose' ? 'active' : ''}" id="composeTab">
             ${this.renderCompose()}
           </section>
 
-          <!-- Commands Tab -->
-          <section class="content-tab ${this.activeTab === 'commands' ? 'active' : ''}" data-tab-content="commands">
+          <section class="content-tab ${this.activeTab === 'commands' ? 'active' : ''}" id="commandsTab">
             ${this.renderCommands()}
           </section>
         </main>
@@ -79,17 +77,212 @@ export class MainApp {
 
     // Render dynamic content
     this.renderConversationsList();
+    
+    // Attach all event listeners AFTER render
+    this.attachAllListeners();
+  }
+
+  attachAllListeners() {
+    // Tab navigation
+    this.attachListener('tabFeed', 'click', () => {
+      console.log('Feed tab clicked');
+      this.activeTab = 'feed';
+      this.render();
+    });
+
+    this.attachListener('tabCompose', 'click', () => {
+      console.log('Compose tab clicked');
+      this.activeTab = 'compose';
+      this.render();
+    });
+
+    this.attachListener('tabCommands', 'click', () => {
+      console.log('Commands tab clicked');
+      this.activeTab = 'commands';
+      this.render();
+    });
+
+    // Header buttons
+    this.attachListener('networkToggle', 'click', () => {
+      console.log('Network toggle clicked');
+      const ui = this.state.getState('ui');
+      this.state.setState('ui.networkEnabled', !ui.networkEnabled);
+      this.render();
+    });
+
+    this.attachListener('logoutBtn', 'click', () => {
+      console.log('Logout clicked');
+      if (confirm('Exit secure session?')) {
+        this.state.setState('currentUser', null);
+      }
+    });
+
+    // Settings buttons - Security
+    this.attachListener('securityOpen', 'click', () => {
+      console.log('Security Open clicked');
+      this.state.setState('ui.securityLevel', 'open');
+      this.render();
+    });
+
+    this.attachListener('securityEncrypted', 'click', () => {
+      console.log('Security Encrypted clicked');
+      this.state.setState('ui.securityLevel', 'encrypted');
+      this.render();
+    });
+
+    this.attachListener('security2DE', 'click', () => {
+      console.log('Security 2DE clicked');
+      this.state.setState('ui.securityLevel', '2DE');
+      this.render();
+    });
+
+    // Settings buttons - Privacy
+    this.attachListener('privacyPublic', 'click', () => {
+      console.log('Privacy Public clicked');
+      this.state.setState('ui.privacyLevel', 'public');
+      this.state.setState('ui.recipient', '@everyone');
+      this.render();
+    });
+
+    this.attachListener('privacyGroups', 'click', () => {
+      console.log('Privacy Groups clicked');
+      this.state.setState('ui.privacyLevel', 'groups');
+      this.render();
+    });
+
+    this.attachListener('privacyPrivate', 'click', () => {
+      console.log('Privacy Private clicked');
+      this.state.setState('ui.privacyLevel', 'private');
+      this.render();
+    });
+
+    // Settings buttons - Persistence
+    this.attachListener('persistencePermanent', 'click', () => {
+      console.log('Persistence Permanent clicked');
+      this.state.setState('ui.persistenceLevel', 'permanent');
+      this.render();
+    });
+
+    this.attachListener('persistenceUndetermined', 'click', () => {
+      console.log('Persistence Undetermined clicked');
+      this.state.setState('ui.persistenceLevel', 'undetermined');
+      this.render();
+    });
+
+    this.attachListener('persistenceSelfDestruct', 'click', () => {
+      console.log('Persistence Self-Destruct clicked');
+      this.state.setState('ui.persistenceLevel', 'self-destruct');
+      this.render();
+    });
+
+    // Input fields
+    this.attachListener('recipient', 'input', (e) => {
+      this.state.setState('ui.recipient', e.target.value);
+    });
+
+    this.attachListener('encryptKey', 'input', (e) => {
+      this.state.setState('ui.encryptKey', e.target.value);
+    });
+
+    this.attachListener('encryptKey2', 'input', (e) => {
+      this.state.setState('ui.encryptKey2', e.target.value);
+    });
+
+    this.attachListener('messageText', 'input', (e) => {
+      this.state.setState('ui.messageText', e.target.value);
+    });
+
+    // Action buttons
+    this.attachListener('sendBtn', 'click', () => {
+      console.log('Send button clicked');
+      this.sendMessage();
+    });
+
+    this.attachListener('inboxBtn', 'click', () => {
+      console.log('Inbox button clicked');
+      this.viewInbox();
+    });
+
+    this.attachListener('fileInput', 'change', (e) => {
+      console.log('File input changed');
+      this.handleFileAttach(e);
+    });
+
+    this.attachListener('removeFile', 'click', () => {
+      console.log('Remove file clicked');
+      this.state.setState('ui.attachedFile', null);
+      this.render();
+    });
+
+    this.attachListener('locationBtn', 'click', () => {
+      console.log('Location button clicked');
+      this.shareLocation();
+    });
+
+    this.attachListener('qrBtn', 'click', () => {
+      console.log('QR button clicked');
+      this.generate2DEQR();
+    });
+
+    this.attachListener('stegoBtn', 'click', () => {
+      console.log('Stego button clicked');
+      this.openSteganography();
+    });
+
+    // Voice button (special handling)
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (voiceBtn) {
+      voiceBtn.addEventListener('mousedown', () => {
+        console.log('Voice recording started');
+        this.startVoiceRecording();
+      });
+      voiceBtn.addEventListener('mouseup', () => {
+        console.log('Voice recording stopped');
+        this.stopVoiceRecording();
+      });
+      voiceBtn.addEventListener('mouseleave', () => {
+        this.stopVoiceRecording();
+      });
+    }
+
+    // Commands
+    this.attachListener('commandInput', 'input', (e) => {
+      this.state.setState('ui.commandInput', e.target.value);
+    });
+
+    this.attachListener('commandInput', 'keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.executeCommand();
+      }
+    });
+
+    this.attachListener('executeCmd', 'click', () => {
+      console.log('Execute command clicked');
+      this.executeCommand();
+    });
+
+    this.attachListener('clearResult', 'click', () => {
+      console.log('Clear result clicked');
+      this.state.setState('ui.commandResult', '');
+      this.render();
+    });
+  }
+
+  attachListener(elementId, eventType, handler) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.addEventListener(eventType, handler);
+    }
   }
 
   renderFeed() {
     return `
       <div class="feed-container">
         <div class="feed-header">
-          <h2 class="feed-title">
-            <span class="blink">›</span> TRANSMISSION FEED
-          </h2>
+          <h2 class="feed-title">TRANSMISSION FEED</h2>
           <button class="btn-terminal btn-sm" id="inboxBtn">
-            ${icons.inbox} INBOX
+            📬 INBOX
           </button>
         </div>
         <div class="conversations-list" id="conversationsList">
@@ -105,13 +298,10 @@ export class MainApp {
     return `
       <div class="compose-container">
         <div class="compose-header">
-          <h2 class="compose-title">
-            <span class="blink">›</span> NEW TRANSMISSION
-          </h2>
+          <h2 class="compose-title">NEW TRANSMISSION</h2>
         </div>
 
         <div class="compose-form">
-          <!-- Recipient -->
           <div class="terminal-input-group">
             <label class="terminal-label">TO:</label>
             <input 
@@ -123,37 +313,35 @@ export class MainApp {
             />
           </div>
 
-          <!-- Security Settings (Compact) -->
           <div class="settings-compact">
             <div class="setting-row">
-              <label class="setting-label">SEC:</label>
+              <label class="setting-label">SECURITY:</label>
               <div class="btn-group-mini">
-                <button class="btn-mini ${ui.securityLevel === 'open' ? 'active' : ''}" data-security="open">OPEN</button>
-                <button class="btn-mini ${ui.securityLevel === 'encrypted' ? 'active' : ''}" data-security="encrypted">ENC</button>
-                <button class="btn-mini ${ui.securityLevel === '2DE' ? 'active' : ''}" data-security="2DE">2DE</button>
+                <button class="btn-mini ${ui.securityLevel === 'open' ? 'active' : ''}" id="securityOpen">OPEN</button>
+                <button class="btn-mini ${ui.securityLevel === 'encrypted' ? 'active' : ''}" id="securityEncrypted">ENC</button>
+                <button class="btn-mini ${ui.securityLevel === '2DE' ? 'active' : ''}" id="security2DE">2DE</button>
               </div>
             </div>
 
             <div class="setting-row">
-              <label class="setting-label">PRV:</label>
+              <label class="setting-label">PRIVACY:</label>
               <div class="btn-group-mini">
-                <button class="btn-mini ${ui.privacyLevel === 'public' ? 'active' : ''}" data-privacy="public">PUB</button>
-                <button class="btn-mini ${ui.privacyLevel === 'groups' ? 'active' : ''}" data-privacy="groups">GRP</button>
-                <button class="btn-mini ${ui.privacyLevel === 'private' ? 'active' : ''}" data-privacy="private">PVT</button>
+                <button class="btn-mini ${ui.privacyLevel === 'public' ? 'active' : ''}" id="privacyPublic">PUB</button>
+                <button class="btn-mini ${ui.privacyLevel === 'groups' ? 'active' : ''}" id="privacyGroups">GRP</button>
+                <button class="btn-mini ${ui.privacyLevel === 'private' ? 'active' : ''}" id="privacyPrivate">PVT</button>
               </div>
             </div>
 
             <div class="setting-row">
-              <label class="setting-label">PST:</label>
+              <label class="setting-label">PERSIST:</label>
               <div class="btn-group-mini">
-                <button class="btn-mini ${ui.persistenceLevel === 'permanent' ? 'active' : ''}" data-persistence="permanent">PERM</button>
-                <button class="btn-mini ${ui.persistenceLevel === 'undetermined' ? 'active' : ''}" data-persistence="undetermined">UNDET</button>
-                <button class="btn-mini ${ui.persistenceLevel === 'self-destruct' ? 'active' : ''}" data-persistence="self-destruct">💣</button>
+                <button class="btn-mini ${ui.persistenceLevel === 'permanent' ? 'active' : ''}" id="persistencePermanent">PERM</button>
+                <button class="btn-mini ${ui.persistenceLevel === 'undetermined' ? 'active' : ''}" id="persistenceUndetermined">UNDET</button>
+                <button class="btn-mini ${ui.persistenceLevel === 'self-destruct' ? 'active' : ''}" id="persistenceSelfDestruct">💣</button>
               </div>
             </div>
           </div>
 
-          <!-- Encryption Key (if needed) -->
           ${ui.securityLevel === 'encrypted' || ui.securityLevel === '2DE' ? `
             <div class="terminal-input-group">
               <label class="terminal-label">KEY:</label>
@@ -180,9 +368,8 @@ export class MainApp {
             </div>
           ` : ''}
 
-          <!-- Message Text -->
           <div class="terminal-input-group">
-            <label class="terminal-label">MSG:</label>
+            <label class="terminal-label">MESSAGE:</label>
             <textarea 
               id="messageText" 
               class="terminal-textarea" 
@@ -190,7 +377,6 @@ export class MainApp {
             >${ui.messageText}</textarea>
           </div>
 
-          <!-- Attached File -->
           ${ui.attachedFile ? `
             <div class="attached-file-terminal">
               <span class="file-indicator">📎 ${ui.attachedFile.name}</span>
@@ -198,31 +384,30 @@ export class MainApp {
             </div>
           ` : ''}
 
-          <!-- Action Buttons -->
           <div class="compose-actions-grid">
             <button class="btn-terminal btn-primary" id="sendBtn">
-              ${icons.send} SEND
+              ▶ SEND
             </button>
 
             <label class="btn-terminal">
-              ${icons.paperclip} FILE
+              📎 FILE
               <input type="file" id="fileInput" style="display: none;" />
             </label>
 
             <button class="btn-terminal ${ui.isRecording ? 'recording' : ''}" id="voiceBtn">
-              ${icons.mic} ${ui.isRecording ? 'REC...' : 'VOICE'}
+              🎤 ${ui.isRecording ? 'REC...' : 'VOICE'}
             </button>
 
             <button class="btn-terminal" id="locationBtn">
-              ${icons.mapPin} LOC
+              📍 LOC
             </button>
 
             <button class="btn-terminal" id="qrBtn">
-              ${icons.qrCode} QR
+              📱 QR
             </button>
 
             <button class="btn-terminal" id="stegoBtn">
-              ${icons.image} STEGO
+              🖼️ STEGO
             </button>
           </div>
         </div>
@@ -240,14 +425,10 @@ export class MainApp {
     return `
       <div class="commands-container">
         <div class="commands-header">
-          <h2 class="commands-title">
-            <span class="blink">›</span> TERMINAL
-          </h2>
+          <h2 class="commands-title">TERMINAL</h2>
         </div>
 
-        <!-- Command Input -->
         <div class="terminal-input-group">
-          <span class="command-prompt">$</span>
           <input 
             type="text" 
             id="commandInput" 
@@ -258,7 +439,6 @@ export class MainApp {
           <button class="btn-execute" id="executeCmd">⏎</button>
         </div>
 
-        <!-- Command Output -->
         ${ui.commandResult ? `
           <div class="command-output">
             <div class="output-header">
@@ -269,7 +449,6 @@ export class MainApp {
           </div>
         ` : ''}
 
-        <!-- System Stats -->
         <div class="system-stats">
           <div class="stat-line">
             <span class="stat-label">FRIENDS:</span>
@@ -299,21 +478,12 @@ export class MainApp {
     const conversations = this.getConversations();
     
     if (conversations.length === 0) {
-      container.innerHTML = `
-        <div class="no-conversations">
-          <div class="ascii-art">
-            ┌─────────────┐<br>
-            │  NO SIGNAL  │<br>
-            └─────────────┘
-          </div>
-          <p>No transmissions detected</p>
-        </div>
-      `;
+      container.innerHTML = '<div class="no-conversations"><p>No transmissions detected</p></div>';
       return;
     }
 
-    container.innerHTML = conversations.slice(0, 20).map(convo => `
-      <div class="conversation-card" data-user="${convo.user}">
+    container.innerHTML = conversations.slice(0, 20).map((convo, idx) => `
+      <div class="conversation-card" id="conv_${idx}">
         <div class="conversation-header-row">
           <div class="conversation-from">
             <span class="user-indicator">@</span>${convo.user.replace('@', '')}
@@ -321,31 +491,31 @@ export class MainApp {
           <div class="conversation-time">${formatTime(convo.lastMessage.timestamp)}</div>
         </div>
         <div class="conversation-preview-text">
-          ${convo.lastMessage.destructed ? 
-            '<span class="destroyed-indicator">💥 DESTROYED</span>' : 
-            convo.lastMessage.selfDestruct ? 
-            '<span class="destruct-indicator">💣 SELF-DESTRUCT</span>' : 
+          ${convo.lastMessage.destructed ? '<span class="destroyed-indicator">💥 DESTROYED</span>' : 
+            convo.lastMessage.selfDestruct ? '<span class="destruct-indicator">💣 SELF-DESTRUCT</span>' : 
             this.truncateMessage(convo.lastMessage.message, 50)}
         </div>
         <div class="conversation-meta">
           ${convo.lastMessage.encrypted ? '<span class="badge-terminal">🔒</span>' : ''}
-          ${convo.unreadCount > 0 ? 
-            `<span class="badge-terminal unread">${convo.unreadCount} NEW</span>` : ''}
+          ${convo.unreadCount > 0 ? `<span class="badge-terminal unread">${convo.unreadCount} NEW</span>` : ''}
         </div>
       </div>
     `).join('');
 
-    // Attach click handlers
-    container.querySelectorAll('.conversation-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const user = card.dataset.user;
-        this.openConversation(user);
-      });
+    // Attach conversation click listeners
+    conversations.forEach((convo, idx) => {
+      const card = document.getElementById(`conv_${idx}`);
+      if (card) {
+        card.addEventListener('click', () => {
+          console.log('Conversation clicked:', convo.user);
+          this.openConversation(convo.user);
+        });
+      }
     });
   }
 
   truncateMessage(msg, length) {
-    if (msg.length <= length) return msg;
+    if (!msg || msg.length <= length) return msg || '';
     return msg.slice(0, length) + '...';
   }
 
@@ -382,182 +552,9 @@ export class MainApp {
     );
   }
 
-setupEventListeners() {
-  // Tab navigation
-  const navTabs = document.querySelectorAll('.nav-tab');
-  navTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const tabName = tab.dataset.tab;
-      this.activeTab = tabName;
-      this.render();
-    });
-  });
-
-  // Header buttons
-  const networkToggle = document.getElementById('networkToggle');
-  if (networkToggle) {
-    networkToggle.addEventListener('click', () => {
-      const ui = this.state.getState('ui');
-      this.state.setState('ui.networkEnabled', !ui.networkEnabled);
-      this.render();
-    });
-  }
-
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      if (confirm('Exit secure session?')) {
-        this.state.setState('currentUser', null);
-        this.state.setState('ui.networkEnabled', false);
-      }
-    });
-  }
-
-  // Settings buttons
-  document.querySelectorAll('[data-security]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      this.state.setState('ui.securityLevel', btn.dataset.security);
-      this.render();
-    });
-  });
-
-  document.querySelectorAll('[data-privacy]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const level = btn.dataset.privacy;
-      this.state.setState('ui.privacyLevel', level);
-      if (level === 'public') {
-        this.state.setState('ui.recipient', '@everyone');
-      } else {
-        const ui = this.state.getState('ui');
-        if (ui.recipient === '@everyone') {
-          this.state.setState('ui.recipient', '');
-        }
-      }
-      this.render();
-    });
-  });
-
-  document.querySelectorAll('[data-persistence]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      this.state.setState('ui.persistenceLevel', btn.dataset.persistence);
-      this.render();
-    });
-  });
-
-  // Compose inputs
-  const recipientInput = document.getElementById('recipient');
-  if (recipientInput) {
-    recipientInput.addEventListener('input', (e) => {
-      this.state.setState('ui.recipient', e.target.value);
-    });
-  }
-
-  const encryptKeyInput = document.getElementById('encryptKey');
-  if (encryptKeyInput) {
-    encryptKeyInput.addEventListener('input', (e) => {
-      this.state.setState('ui.encryptKey', e.target.value);
-    });
-  }
-
-  const encryptKey2Input = document.getElementById('encryptKey2');
-  if (encryptKey2Input) {
-    encryptKey2Input.addEventListener('input', (e) => {
-      this.state.setState('ui.encryptKey2', e.target.value);
-    });
-  }
-
-  const messageTextInput = document.getElementById('messageText');
-  if (messageTextInput) {
-    messageTextInput.addEventListener('input', (e) => {
-      this.state.setState('ui.messageText', e.target.value);
-    });
-  }
-
-  // Action buttons
-  const sendBtn = document.getElementById('sendBtn');
-  if (sendBtn) {
-    sendBtn.addEventListener('click', () => this.sendMessage());
-  }
-
-  const inboxBtn = document.getElementById('inboxBtn');
-  if (inboxBtn) {
-    inboxBtn.addEventListener('click', () => this.viewInbox());
-  }
-
-  const fileInput = document.getElementById('fileInput');
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => this.handleFileAttach(e));
-  }
-
-  const removeFileBtn = document.getElementById('removeFile');
-  if (removeFileBtn) {
-    removeFileBtn.addEventListener('click', () => {
-      this.state.setState('ui.attachedFile', null);
-      this.render();
-    });
-  }
-
-  // Voice recording
-  const voiceBtn = document.getElementById('voiceBtn');
-  if (voiceBtn) {
-    voiceBtn.addEventListener('mousedown', () => this.startVoiceRecording());
-    voiceBtn.addEventListener('mouseup', () => this.stopVoiceRecording());
-    voiceBtn.addEventListener('mouseleave', () => this.stopVoiceRecording());
-    voiceBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      this.startVoiceRecording();
-    });
-    voiceBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      this.stopVoiceRecording();
-    });
-  }
-
-  const locationBtn = document.getElementById('locationBtn');
-  if (locationBtn) {
-    locationBtn.addEventListener('click', () => this.shareLocation());
-  }
-
-  const qrBtn = document.getElementById('qrBtn');
-  if (qrBtn) {
-    qrBtn.addEventListener('click', () => this.generate2DEQR());
-  }
-
-  const stegoBtn = document.getElementById('stegoBtn');
-  if (stegoBtn) {
-    stegoBtn.addEventListener('click', () => this.openSteganography());
-  }
-
-  // Commands
-  const commandInput = document.getElementById('commandInput');
-  if (commandInput) {
-    commandInput.addEventListener('input', (e) => {
-      this.state.setState('ui.commandInput', e.target.value);
-    });
-
-    commandInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        this.executeCommand();
-      }
-    });
-  }
-
-  const executeCmdBtn = document.getElementById('executeCmd');
-  if (executeCmdBtn) {
-    executeCmdBtn.addEventListener('click', () => this.executeCommand());
-  }
-
-  const clearResultBtn = document.getElementById('clearResult');
-  if (clearResultBtn) {
-    clearResultBtn.addEventListener('click', () => {
-      this.state.setState('ui.commandResult', '');
-      this.render();
-    });
-  }
-}
-
-  async sendMessage() {
+  sendMessage() {
+    console.log('sendMessage() called');
+    
     const ui = this.state.getState('ui');
     const currentUser = this.state.getState('currentUser');
     
@@ -567,13 +564,11 @@ setupEventListeners() {
     }
 
     const msgId = generateId();
-    let messageContent = ui.messageText;
-
     const msgData = {
       id: msgId,
       from: currentUser.username,
       to: ui.recipient,
-      message: messageContent,
+      message: ui.messageText,
       security: ui.securityLevel,
       privacy: ui.privacyLevel,
       persistence: ui.persistenceLevel,
@@ -582,35 +577,17 @@ setupEventListeners() {
       destructed: false,
       attachedFile: ui.attachedFile ? ui.attachedFile.name : null,
       attachedFileData: ui.attachedFile,
-      signature: null
+      encrypted: false
     };
 
-    // Encryption based on security level
+    // Apply encryption
     if (ui.securityLevel === 'encrypted' && ui.encryptKey) {
-      msgData.message = EncryptionService.encryptMessage(messageContent, ui.encryptKey);
+      msgData.message = EncryptionService.encryptMessage(ui.messageText, ui.encryptKey);
       msgData.encrypted = true;
     } else if (ui.securityLevel === '2DE' && ui.encryptKey && ui.encryptKey2) {
-      msgData.message = EncryptionService.encrypt2DE(messageContent, ui.encryptKey, ui.encryptKey2);
+      msgData.message = EncryptionService.encrypt2DE(ui.messageText, ui.encryptKey, ui.encryptKey2);
       msgData.encrypted = true;
       msgData.doubleEncrypted = true;
-    } else if (ui.securityLevel !== 'open') {
-      // Use keypair encryption
-      const users = this.state.getState('users');
-      const recipient = users[ui.recipient];
-      
-      if (recipient && recipient.publicKey) {
-        msgData.message = await EncryptionService.encryptWithPublicKey(
-          messageContent, 
-          recipient.publicKey
-        );
-        msgData.encrypted = true;
-        msgData.keypairEncrypted = true;
-      }
-    }
-
-    // Sign message
-    if (currentUser.privateKey) {
-      msgData.signature = EncryptionService.signMessage(msgData.message, currentUser.privateKey);
     }
 
     if (ui.persistenceLevel === 'self-destruct') {
@@ -653,15 +630,13 @@ setupEventListeners() {
         ...users[msgData.to],
         messages: [...users[msgData.to].messages, msgData]
       };
-      alert('✓ Message transmitted');
+      alert('✓ Message sent!');
     }
 
     this.state.setState('users', users);
     this.state.setState('currentUser', updatedSender);
     this.state.setState('ui.messageText', '');
     this.state.setState('ui.attachedFile', null);
-    this.state.setState('ui.encryptKey', '');
-    this.state.setState('ui.encryptKey2', '');
     this.state.persist();
     
     this.render();
@@ -671,7 +646,6 @@ setupEventListeners() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (max 5MB for mobile)
     if (file.size > 5 * 1024 * 1024) {
       alert('⚠ File too large. Max 5MB');
       return;
@@ -687,8 +661,7 @@ setupEventListeners() {
       };
       
       this.state.setState('ui.attachedFile', fileData);
-      const ui = this.state.getState('ui');
-      this.state.setState('ui.messageText', ui.messageText + `\n[📎 ${file.name}]`);
+      alert(`✓ File attached: ${file.name}`);
       this.render();
     };
     reader.readAsDataURL(file);
@@ -719,8 +692,7 @@ setupEventListeners() {
           };
           
           this.state.setState('ui.attachedFile', fileData);
-          const ui = this.state.getState('ui');
-          this.state.setState('ui.messageText', ui.messageText + '\n[🎤 Voice message]');
+          alert('✓ Voice message recorded');
           this.render();
         };
         reader.readAsDataURL(blob);
@@ -731,7 +703,7 @@ setupEventListeners() {
       this.state.setState('ui.isRecording', true);
       this.render();
     } catch (err) {
-      alert(`⚠ Microphone access denied`);
+      alert('⚠ Microphone access denied');
     }
   }
 
@@ -753,18 +725,21 @@ setupEventListeners() {
       return;
     }
 
+    alert('Getting location...');
+    
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude.toFixed(6);
         const lon = pos.coords.longitude.toFixed(6);
-        const locationText = `\n📍 ${lat}, ${lon}\nhttps://maps.google.com/?q=${lat},${lon}`;
+        const locationText = `\n📍 Location: ${lat}, ${lon}\nhttps://maps.google.com/?q=${lat},${lon}`;
         
         const ui = this.state.getState('ui');
         this.state.setState('ui.messageText', ui.messageText + locationText);
+        alert('✓ Location added to message');
         this.render();
       },
       (err) => {
-        alert(`⚠ Location unavailable`);
+        alert('✗ Location unavailable: ' + err.message);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -778,15 +753,17 @@ setupEventListeners() {
       return;
     }
 
+    if (!ui.encryptKey) {
+      alert('⚠ Enter encryption key first');
+      return;
+    }
+
     let encrypted;
     
-    if (ui.securityLevel === '2DE' && ui.encryptKey && ui.encryptKey2) {
+    if (ui.securityLevel === '2DE' && ui.encryptKey2) {
       encrypted = EncryptionService.encrypt2DE(ui.messageText, ui.encryptKey, ui.encryptKey2);
-    } else if (ui.encryptKey) {
-      encrypted = EncryptionService.encryptMessage(ui.messageText, ui.encryptKey);
     } else {
-      alert('⚠ Enter encryption key(s) first');
-      return;
+      encrypted = EncryptionService.encryptMessage(ui.messageText, ui.encryptKey);
     }
 
     if (!encrypted) {
@@ -794,11 +771,10 @@ setupEventListeners() {
       return;
     }
 
-    // Generate QR code
     const qrDataUrl = await QRGenerator.generate(encrypted, {
       color: {
-        dark: '#00ff00',
-        light: '#000000'
+        dark: '#0088cc',
+        light: '#ffffff'
       },
       width: 300
     });
@@ -879,7 +855,7 @@ setupEventListeners() {
           <div class="qr-container">
             <img src="${data.qrImage}" alt="QR Code" class="qr-image" />
           </div>
-          <p class="qr-description">Scan with compatible device</p>
+          <p class="qr-description">Scan with compatible device to decrypt</p>
           <div class="qr-data-box">
             <div class="data-header">ENCRYPTED DATA:</div>
             <pre class="data-content">${data.data.slice(0, 200)}${data.data.length > 200 ? '...' : ''}</pre>
@@ -891,8 +867,7 @@ setupEventListeners() {
     } else if (type === 'steganography') {
       new SteganographyView(content, this.state, (fileData) => {
         this.state.setState('ui.attachedFile', fileData);
-        const ui = this.state.getState('ui');
-        this.state.setState('ui.messageText', ui.messageText + `\n[🖼️ ${fileData.name}]`);
+        alert('✓ Stego image attached');
         this.closeModal();
         this.render();
       });
@@ -901,7 +876,6 @@ setupEventListeners() {
     modal.appendChild(content);
     modalRoot.appendChild(overlay);
 
-    // Close handlers
     closeBtn.addEventListener('click', () => this.closeModal());
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) this.closeModal();
@@ -925,23 +899,13 @@ setupEventListeners() {
                 msg.selfDestruct ? '💣 SELF-DESTRUCT' : 
                 msg.encrypted ? '🔒 ENCRYPTED' : msg.message}
             </div>
-            ${msg.attachedFileData ? `
-              <div class="msg-attachment">
-                ${msg.attachedFileData.type.startsWith('image/') ? 
-                  `<img src="${msg.attachedFileData.data}" alt="${msg.attachedFileData.name}" class="attachment-img" />` :
-                  msg.attachedFileData.type.startsWith('audio/') ?
-                  `<audio controls src="${msg.attachedFileData.data}" class="attachment-audio"></audio>` :
-                  `<div class="attachment-file-info">📎 ${msg.attachedFileData.name}</div>`
-                }
-              </div>
-            ` : ''}
           </div>
         `;
       }).join('');
 
     container.innerHTML = `
       <div class="conversation-view">
-        ${messages}
+        ${messages || '<p>No messages</p>'}
       </div>
     `;
   }
