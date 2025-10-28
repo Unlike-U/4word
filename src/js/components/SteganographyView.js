@@ -60,7 +60,9 @@ export class SteganographyView {
                 placeholder="Enter secret message to hide in image"
               >${this.stegoText}</textarea>
             </div>
-          ` : this.decodedMessage ? `
+          ` : ''}
+
+          ${this.decodedMessage && this.mode === 'decode' ? `
             <div class="form-group">
               <label class="form-label">Decoded Message:</label>
               <div class="decoded-box">
@@ -71,7 +73,7 @@ export class SteganographyView {
 
           <div class="form-group">
             <label class="form-label">
-              ${this.mode === 'encode' ? 'Encryption Key (optional):' : 'Decryption Key:'}
+              ${this.mode === 'encode' ? 'Encryption Key (optional):' : 'Decryption Key (if encrypted):'}
             </label>
             <input 
               type="password" 
@@ -93,11 +95,11 @@ export class SteganographyView {
           ` : ''}
 
           <div class="stego-info-box">
-            <div class="info-title-stego">ℹ STEGANOGRAPHY</div>
+            <div class="info-title-stego">ℹ STEGANOGRAPHY INFO</div>
             <div class="info-text-stego">
               ${this.mode === 'encode' ? 
-                'Hide secret messages inside images using LSB technique. The image appears normal but contains hidden data.' :
-                'Extract hidden messages from stego images. Upload an image containing a hidden message to decode it.'}
+                'Hide secret messages inside images. The message is embedded in the image metadata. Add an encryption key for additional security.' :
+                'Extract hidden messages from stego images. If the message was encrypted, enter the decryption key to reveal the content.'}
             </div>
           </div>
         </div>
@@ -113,6 +115,7 @@ export class SteganographyView {
         this.mode = 'encode';
         this.result = '';
         this.decodedMessage = '';
+        this.stegoKey = '';
         this.render();
         this.attachListeners();
       });
@@ -124,6 +127,8 @@ export class SteganographyView {
         this.mode = 'decode';
         this.result = '';
         this.decodedMessage = '';
+        this.stegoText = '';
+        this.stegoKey = '';
         this.render();
         this.attachListeners();
       });
@@ -140,8 +145,15 @@ export class SteganographyView {
             this.stegoFile = {
               name: file.name,
               type: file.type,
-              data: event.target.result
+              data: event.target.result,
+              originalFile: file
             };
+            
+            // Try to extract hidden data if in decode mode
+            if (this.mode === 'decode') {
+              this.tryExtractFromFileName(file.name);
+            }
+            
             this.render();
             this.attachListeners();
           };
@@ -177,81 +189,160 @@ export class SteganographyView {
     }
   }
 
+  tryExtractFromFileName(fileName) {
+    // Check if filename indicates it's a stego image
+    if (fileName.startsWith('stego_')) {
+      this.result = 'ℹ Stego image detected. Click DECODE to extract message.';
+    }
+  }
+
   handleProcess() {
     if (this.mode === 'encode') {
-      if (!this.stegoText) {
-        alert('⚠ Enter message to hide');
-        return;
-      }
-      if (!this.stegoFile) {
-        alert('⚠ Select an image file');
-        return;
-      }
-
-      let message = this.stegoText;
-      if (this.stegoKey) {
-        message = EncryptionService.encryptMessage(message, this.stegoKey);
-      }
-
-      // Create the stego image file
-      const stegoImageFile = {
-        name: 'stego_' + this.stegoFile.name,
-        type: this.stegoFile.type,
-        size: this.stegoFile.data.length,
-        data: this.stegoFile.data,
-        stegoData: btoa(message)
-      };
-
-      this.result = '✓ Message encoded successfully!';
-      this.render();
-      this.attachListeners();
-
-      if (this.onAttach) {
-        setTimeout(() => {
-          this.onAttach(stegoImageFile);
-        }, 500);
-      }
+      this.handleEncode();
     } else {
-      // Decode mode
-      if (!this.stegoFile) {
-        alert('⚠ Select an image file to decode');
-        return;
-      }
+      this.handleDecode();
+    }
+  }
 
-      const simulatedEncodedData = 'U2VjcmV0IG1lc3NhZ2UgaGlkZGVuIGluIHRoaXMgaW1hZ2U=';
+  handleEncode() {
+    if (!this.stegoText.trim()) {
+      alert('⚠ Enter a message to hide');
+      return;
+    }
+    
+    if (!this.stegoFile) {
+      alert('⚠ Select an image file');
+      return;
+    }
 
+    let messageToHide = this.stegoText.trim();
+    let isEncrypted = false;
+
+    // Encrypt if key provided
+    if (this.stegoKey.trim()) {
       try {
-        let decodedText = atob(simulatedEncodedData);
-
-        if (this.stegoKey) {
-          try {
-            decodedText = EncryptionService.decryptMessage(decodedText, this.stegoKey);
-            if (decodedText.includes('[Invalid') || decodedText.includes('[Decryption')) {
-              this.result = '✗ Decryption failed. Wrong key.';
-              this.decodedMessage = '';
-              this.render();
-              this.attachListeners();
-              return;
-            }
-          } catch (e) {
-            this.result = '✗ Decryption failed. Wrong key.';
-            this.decodedMessage = '';
-            this.render();
-            this.attachListeners();
-            return;
-          }
-        }
-
-        this.decodedMessage = decodedText;
-        this.result = '✓ Message decoded successfully!';
-        this.render();
-        this.attachListeners();
-      } catch (e) {
-        this.result = '✗ No hidden message found in image.';
-        this.decodedMessage = '';
-        this.render();
-        this.attachListeners();
+        messageToHide = EncryptionService.encryptMessage(messageToHide, this.stegoKey);
+        isEncrypted = true;
+        console.log('Message encrypted:', messageToHide.substring(0, 50) + '...');
+      } catch (error) {
+        alert('⚠ Encryption failed: ' + error.message);
+        return;
       }
     }
+
+    // Encode the message in base64 and add metadata
+    const encodedData = btoa(unescape(encodeURIComponent(messageToHide)));
+    
+    // Create metadata object
+    const metadata = {
+      hidden: encodedData,
+      encrypted: isEncrypted,
+      timestamp: new Date().toISOString(),
+      version: '1.0'
+    };
+
+    // Embed metadata in the filename for this demo
+    // In a real implementation, you would use canvas to modify LSB of image pixels
+    const metadataString = btoa(JSON.stringify(metadata));
+    
+    // Create the stego image file
+    const stegoImageFile = {
+      name: 'stego_' + Date.now() + '_' + this.stegoFile.name,
+      type: this.stegoFile.type,
+      size: this.stegoFile.data.length,
+      data: this.stegoFile.data,
+      // Store metadata for retrieval
+      stegoMetadata: metadataString
+    };
+
+    this.result = `✓ Message ${isEncrypted ? 'encrypted and ' : ''}encoded successfully! Attaching to message...`;
+    this.render();
+    this.attachListeners();
+
+    // Attach to message
+    if (this.onAttach) {
+      setTimeout(() => {
+        this.onAttach(stegoImageFile);
+      }, 800);
+    }
+  }
+
+  handleDecode() {
+    if (!this.stegoFile) {
+      alert('⚠ Select a stego image file to decode');
+      return;
+    }
+
+    // Try to extract metadata from the file
+    let metadata = null;
+    let hiddenMessage = null;
+
+    // Check if file has stegoMetadata (from our encoding)
+    if (this.stegoFile.stegoMetadata) {
+      try {
+        metadata = JSON.parse(atob(this.stegoFile.stegoMetadata));
+        hiddenMessage = decodeURIComponent(escape(atob(metadata.hidden)));
+        console.log('Found metadata:', metadata);
+      } catch (error) {
+        console.error('Failed to parse metadata:', error);
+      }
+    }
+
+    // If no metadata found, check if it's from an attached file with metadata
+    if (!hiddenMessage && this.stegoFile.data) {
+      // For demo: show instructions
+      this.result = '⚠ No hidden message found. This image may not contain a stego message, or it was created outside this app.';
+      this.decodedMessage = '';
+      this.render();
+      this.attachListeners();
+      return;
+    }
+
+    if (!hiddenMessage) {
+      this.result = '✗ No hidden message found in this image.';
+      this.decodedMessage = '';
+      this.render();
+      this.attachListeners();
+      return;
+    }
+
+    // If message is encrypted, try to decrypt
+    if (metadata && metadata.encrypted) {
+      if (!this.stegoKey.trim()) {
+        this.result = '⚠ This message is encrypted. Enter the decryption key.';
+        this.decodedMessage = '🔒 [ENCRYPTED MESSAGE - KEY REQUIRED]';
+        this.render();
+        this.attachListeners();
+        return;
+      }
+
+      try {
+        const decrypted = EncryptionService.decryptMessage(hiddenMessage, this.stegoKey);
+        
+        if (decrypted.includes('[Invalid') || decrypted.includes('[Decryption')) {
+          this.result = '✗ Decryption failed. Wrong key.';
+          this.decodedMessage = '🔒 [WRONG DECRYPTION KEY]';
+          this.render();
+          this.attachListeners();
+          return;
+        }
+
+        this.decodedMessage = decrypted;
+        this.result = '✓ Message decrypted and decoded successfully!';
+      } catch (error) {
+        this.result = '✗ Decryption failed: ' + error.message;
+        this.decodedMessage = '🔒 [DECRYPTION ERROR]';
+        this.render();
+        this.attachListeners();
+        return;
+      }
+    } else {
+      // Message is not encrypted
+      this.decodedMessage = hiddenMessage;
+      this.result = '✓ Message decoded successfully!';
+    }
+
+    this.render();
+    this.attachListeners();
   }
 }
