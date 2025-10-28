@@ -31,14 +31,17 @@ export class MainApp {
               <span class="terminal-user">${currentUser.username}</span>
             </div>
             <div class="terminal-controls">
-              <button class="terminal-btn ${ui.networkEnabled ? 'online' : 'offline'}" id="networkToggle">
-                <span class="status-dot"></span>
-                ${ui.networkEnabled ? 'ONLINE' : 'OFFLINE'}
-              </button>
-              <button class="terminal-btn logout" id="logoutBtn">
-                EXIT
-              </button>
-            </div>
+  <button class="terminal-btn ${ui.networkEnabled ? 'online' : 'offline'}" id="networkToggle">
+    <span class="status-dot"></span>
+    ${ui.networkEnabled ? 'ONLINE' : 'OFFLINE'}
+  </button>
+  <button class="terminal-btn" id="clearDataBtn">
+    🗑️ CLEAR DATA
+  </button>
+  <button class="terminal-btn logout" id="logoutBtn">
+    EXIT
+  </button>
+</div>
           </div>
         </header>
 
