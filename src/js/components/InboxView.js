@@ -14,6 +14,7 @@ export class InboxView {
     this.countdownInterval = null;
     
     this.render();
+    this.attachEventListeners();
   }
 
   render() {
@@ -27,19 +28,12 @@ export class InboxView {
         </div>
       </div>
     `;
-
-    this.attachEventListeners();
   }
 
   renderMessagesList() {
     if (this.messages.length === 0) {
       return `
         <div class="inbox-empty-terminal">
-          <pre class="empty-icon">
-  ╔══════════╗
-  ║  EMPTY   ║
-  ╚══════════╝
-          </pre>
           <p>NO MESSAGES</p>
         </div>
       `;
@@ -48,7 +42,7 @@ export class InboxView {
     return `
       <div class="message-list-scroll">
         ${this.messages.map((msg, idx) => `
-          <div class="msg-list-item ${this.selectedMsg?.id === msg.id ? 'active' : ''}" data-msg-id="${msg.id}">
+          <div class="msg-list-item ${this.selectedMsg?.id === msg.id ? 'active' : ''}" data-msg-idx="${idx}">
             <div class="msg-list-header">
               <span class="msg-from">${msg.from}</span>
               <span class="msg-time">${formatTime(msg.timestamp)}</span>
@@ -73,12 +67,6 @@ export class InboxView {
     if (!this.selectedMsg) {
       return `
         <div class="details-empty-terminal">
-          <pre class="select-icon">
-  ┌─────────┐
-  │ SELECT  │
-  │ MESSAGE │
-  └─────────┘
-          </pre>
           <p>SELECT A MESSAGE TO VIEW</p>
         </div>
       `;
@@ -90,11 +78,7 @@ export class InboxView {
     if (msg.destructed && this.viewingDestruct !== msg.id) {
       return `
         <div class="msg-destroyed-terminal">
-          <pre class="destroyed-icon">
-  ╔═══════════╗
-  ║  💥 BOOM  ║
-  ╚═══════════╝
-          </pre>
+          <div class="destroyed-icon">💥</div>
           <div class="destroyed-title">MESSAGE DESTROYED</div>
           <div class="destroyed-text">This transmission has been permanently erased</div>
         </div>
@@ -120,7 +104,7 @@ export class InboxView {
           </div>
           <div class="meta-row">
             <span class="meta-key">SEC:</span>
-            <span class="meta-val">${msg.security.toUpperCase()}</span>
+            <span class="meta-val">${msg.security ? msg.security.toUpperCase() : 'OPEN'}</span>
           </div>
         </div>
 
@@ -166,14 +150,6 @@ export class InboxView {
         ` : ''}
 
         ${this.viewingDestruct === msg.id || !msg.selfDestruct ? `
-          ${this.viewingDestruct === msg.id && this.countdown !== null ? `
-            <div class="countdown-box">
-              <div class="countdown-timer">⏱ ${this.countdown}s</div>
-              <div class="countdown-label">SELF-DESTRUCTING...</div>
-              <button class="btn-destroy-now" id="destroyNowBtn">DESTROY NOW</button>
-            </div>
-          ` : ''}
-
           ${msg.attachedFileData ? this.renderAttachment(msg.attachedFileData) : ''}
 
           <div class="msg-content-box">
@@ -182,6 +158,16 @@ export class InboxView {
               ${this.getDecryptedMessage(msg, currentUser)}
             </div>
           </div>
+
+          ${this.viewingDestruct === msg.id && this.countdown !== null ? `
+            <div class="countdown-box-bottom">
+              <div class="countdown-info">
+                <div class="countdown-timer-large">${this.countdown}s</div>
+                <div class="countdown-label">SELF-DESTRUCTING...</div>
+              </div>
+              <button class="btn-destroy-now" id="destroyNowBtn">💥 DESTROY NOW</button>
+            </div>
+          ` : ''}
         ` : ''}
       </div>
     `;
@@ -260,10 +246,10 @@ export class InboxView {
 
   attachEventListeners() {
     // Message item clicks
-    this.container.querySelectorAll('.msg-list-item').forEach(item => {
+    this.container.querySelectorAll('.msg-list-item').forEach((item, idx) => {
       item.addEventListener('click', () => {
-        const msgId = item.dataset.msgId;
-        this.selectedMsg = this.messages.find(m => m.id === msgId);
+        const msgIdx = parseInt(item.dataset.msgIdx);
+        this.selectedMsg = this.messages[msgIdx];
         this.decryptKey = '';
         this.decryptKey2 = '';
         this.viewingDestruct = null;
@@ -272,6 +258,7 @@ export class InboxView {
           clearInterval(this.countdownInterval);
         }
         this.render();
+        this.attachEventListeners();
       });
     });
 
@@ -281,6 +268,7 @@ export class InboxView {
       decryptInput.addEventListener('input', (e) => {
         this.decryptKey = e.target.value;
         this.render();
+        this.attachEventListeners();
       });
     }
 
@@ -289,6 +277,7 @@ export class InboxView {
       decryptKey2Input.addEventListener('input', (e) => {
         this.decryptKey2 = e.target.value;
         this.render();
+        this.attachEventListeners();
       });
     }
 
@@ -315,11 +304,17 @@ export class InboxView {
     let timeLeft = 30;
 
     this.render();
+    this.attachEventListeners();
 
     this.countdownInterval = setInterval(() => {
       timeLeft -= 1;
       this.countdown = timeLeft;
-      this.render();
+      
+      // Update just the countdown display
+      const timerElement = this.container.querySelector('.countdown-timer-large');
+      if (timerElement) {
+        timerElement.textContent = `${timeLeft}s`;
+      }
 
       if (timeLeft <= 0) {
         this.destroyMessage(msg);
@@ -360,5 +355,6 @@ export class InboxView {
     );
 
     this.render();
+    this.attachEventListeners();
   }
 }
