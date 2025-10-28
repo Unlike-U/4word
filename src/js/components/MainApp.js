@@ -471,48 +471,49 @@ export class MainApp {
     `;
   }
 
-  renderConversationsList() {
-    const container = document.getElementById('conversationsContainer');
-    if (!container) return;
+renderConversationsList() {
+  const container = document.getElementById('conversationsContainer');
+  if (!container) return;
 
-    const conversations = this.getConversations();
-    
-    if (conversations.length === 0) {
-      container.innerHTML = '<div class="no-conversations"><p>No transmissions detected</p></div>';
-      return;
-    }
-
-    container.innerHTML = conversations.slice(0, 20).map((convo, idx) => `
-      <div class="conversation-card" id="conv_${idx}">
-        <div class="conversation-header-row">
-          <div class="conversation-from">
-            <span class="user-indicator">@</span>${convo.user.replace('@', '')}
-          </div>
-          <div class="conversation-time">${formatTime(convo.lastMessage.timestamp)}</div>
-        </div>
-        <div class="conversation-preview-text">
-          ${convo.lastMessage.destructed ? '<span class="destroyed-indicator">💥 DESTROYED</span>' : 
-            convo.lastMessage.selfDestruct ? '<span class="destruct-indicator">💣 SELF-DESTRUCT</span>' : 
-            this.truncateMessage(convo.lastMessage.message, 50)}
-        </div>
-        <div class="conversation-meta">
-          ${convo.lastMessage.encrypted ? '<span class="badge-terminal">🔒</span>' : ''}
-          ${convo.unreadCount > 0 ? `<span class="badge-terminal unread">${convo.unreadCount} NEW</span>` : ''}
-        </div>
-      </div>
-    `).join('');
-
-    // Attach conversation click listeners
-    conversations.forEach((convo, idx) => {
-      const card = document.getElementById(`conv_${idx}`);
-      if (card) {
-        card.addEventListener('click', () => {
-          console.log('Conversation clicked:', convo.user);
-          this.openConversation(convo.user);
-        });
-      }
-    });
+  const conversations = this.getConversations();
+  
+  if (conversations.length === 0) {
+    container.innerHTML = '<div class="no-conversations"><p>No transmissions detected</p></div>';
+    return;
   }
+
+  // Show ALL conversations, not just the first 20
+  container.innerHTML = conversations.map((convo, idx) => `
+    <div class="conversation-card" id="conv_${idx}">
+      <div class="conversation-header-row">
+        <div class="conversation-from">
+          <span class="user-indicator">@</span>${convo.user.replace('@', '')}
+        </div>
+        <div class="conversation-time">${formatTime(convo.lastMessage.timestamp)}</div>
+      </div>
+      <div class="conversation-preview-text">
+        ${convo.lastMessage.destructed ? '<span class="destroyed-indicator">💥 DESTROYED</span>' : 
+          convo.lastMessage.selfDestruct ? '<span class="destruct-indicator">💣 SELF-DESTRUCT</span>' : 
+          this.truncateMessage(convo.lastMessage.message, 50)}
+      </div>
+      <div class="conversation-meta">
+        ${convo.lastMessage.encrypted ? '<span class="badge-terminal">🔒</span>' : ''}
+        ${convo.unreadCount > 0 ? `<span class="badge-terminal unread">${convo.unreadCount} NEW</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  // Attach conversation click listeners
+  conversations.forEach((convo, idx) => {
+    const card = document.getElementById(`conv_${idx}`);
+    if (card) {
+      card.addEventListener('click', () => {
+        console.log('Conversation clicked:', convo.user);
+        this.openConversation(convo.user);
+      });
+    }
+  });
+}
 
   truncateMessage(msg, length) {
     if (!msg || msg.length <= length) return msg || '';
