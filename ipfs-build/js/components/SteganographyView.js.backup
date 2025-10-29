@@ -1,11 +1,9 @@
-import storage from '../storage/indexedDB.js';
-import { Validator } from '../utils/validation.js';
 /**
  * 4Word Advanced Steganography Module
  * LSB with chaos-based diffusion for enhanced security
  */
 
-import crypto from '../crypto/webCrypto.js';
+import { crypto } from './webCrypto.js';
 
 export class AdvancedSteganography {
   constructor() {

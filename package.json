@@ -1,9 +1,9 @@
 {
   "name": "4word",
-"version": "2.0.0",
+  "version": "2.0.0",
   "description": "Underground secure messaging platform",
   "main": "src/js/index.js",
-"scripts": {
+  "scripts": {
     "dev": "webpack serve --mode development",
     "dev:verbose": "webpack serve --mode development --progress",
     "build": "webpack --mode production",
@@ -11,7 +11,13 @@
     "serve:local": "webpack serve --mode development --host localhost --port 9000",
     "serve:network": "webpack serve --mode development --host 0.0.0.0 --port 9000"
   },
-  "keywords": ["encryption", "messaging", "security", "vanilla-js", "underground"],
+  "keywords": [
+    "encryption",
+    "messaging",
+    "security",
+    "vanilla-js",
+    "underground"
+  ],
   "author": "Underground Dev",
   "license": "MIT",
   "devDependencies": {
@@ -30,7 +36,9 @@
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
+    "pinata": "^2.5.1",
     "qrcode": "^1.5.3",
+    "remove": "^0.1.5",
     "three": "^0.158.0"
   }
 }

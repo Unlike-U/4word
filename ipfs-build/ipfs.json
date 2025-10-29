@@ -1,0 +1,10 @@
+{
+  "name": "4Word",
+  "description": "Web3-Powered Secure Messaging - Private, Modular, Eternal",
+  "version": "1.0.0",
+  "author": "Unlike-U",
+  "license": "MIT",
+  "repository": "https://github.com/Unlike-U/4word",
+  "keywords": ["encryption", "web3", "messaging", "crypto", "ipfs", "unstoppable-domains"],
+  "ipfs": true
+}
