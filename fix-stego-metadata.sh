@@ -1,3 +1,9 @@
+#!/bin/bash
+
+echo "🔧 Fixing Stego Metadata Persistence..."
+
+# Update stateManager to preserve stegoMetadata
+cat > src/js/state/stateManager.js << 'STATEMGR'
 class StateManager {
   #state;
   #listeners;
@@ -177,3 +183,11 @@ class StateManager {
 }
 
 export default new StateManager();
+STATEMGR
+
+echo "✅ StateManager updated to preserve stego metadata"
+echo ""
+echo "Next: Clear localStorage and test"
+echo "  1. Open browser console (F12)"
+echo "  2. Run: localStorage.clear(); location.reload();"
+echo "  3. Restart: npm run dev"

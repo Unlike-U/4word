@@ -294,7 +294,7 @@ body {
     color: $text-primary;
     
     &:hover {
-      background: darken($bg-input, 5%);
+      background: #e8eaed;
     }
   }
   
@@ -467,7 +467,7 @@ body {
   
   &:hover {
     background: $bg-hover;
-    border-color: darken($border-color, 5%);
+    border-color: #d8dadd;
   }
   
   &.online {
@@ -877,7 +877,7 @@ body {
   transition: all $transition-base;
   
   &:hover {
-    color: darken($danger, 10%);
+    color: #cc3026;
   }
 }
 
@@ -1379,7 +1379,7 @@ body {
   box-shadow: $shadow-md;
   
   &:hover {
-    background: darken($danger, 10%);
+    background: #cc3026;
     transform: scale(1.05);
     box-shadow: $shadow-lg;
   }
@@ -1396,6 +1396,6 @@ body {
   border: 1px solid $warning;
   border-radius: $radius-sm;
   font-size: 12px;
-  color: darken($warning, 20%);
+  color: #cc7a00;
   text-align: center;
 }
