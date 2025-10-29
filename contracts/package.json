@@ -1,0 +1,15 @@
+{
+  "name": "4word-contracts",
+  "version": "1.0.0",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:base": "hardhat run contracts/deploy.js --network base",
+    "deploy:sepolia": "hardhat run contracts/deploy.js --network baseSepolia",
+    "verify": "hardhat verify --network base"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "dotenv": "^16.3.1"
+  }
+}

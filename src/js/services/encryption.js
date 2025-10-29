@@ -1,74 +1,99 @@
-/**
- * 4Word Encryption Service
- * Wrapper for Web Crypto API
- */
-
-import crypto from '../crypto/webCrypto.js';
-
-export const encryption = {
+// Encryption service for handling password encryption and verification
+const EncryptionService = {
   /**
-   * Encrypt message using AES-256-GCM
+   * Hash a password using SHA-256
+   * @param {string} password - The password to hash
+   * @returns {Promise<string>} The hashed password in hex format
    */
-  async encrypt(message, password) {
+  async hashPassword(password) {
     try {
-      const result = await crypto.encrypt(message, password);
-      return result.encrypted;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
     } catch (error) {
-      console.error('Encryption error:', error);
-      throw error;
+      console.error('Hash error:', error);
+      // Fallback to simple hash for development
+      return this.simpleHash(password);
     }
   },
 
   /**
-   * Decrypt message
+   * Simple hash fallback (for development only)
+   * @param {string} str - String to hash
+   * @returns {string} Hash
    */
-  async decrypt(encrypted, password) {
-    try {
-      return await crypto.decrypt(encrypted, password);
-    } catch (error) {
-      console.error('Decryption error:', error);
-      throw error;
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
     }
+    return Math.abs(hash).toString(16).padStart(64, '0');
   },
 
   /**
-   * Double encryption (2DE)
+   * Verify a password against a hash
+   * @param {string} password - The password to verify
+   * @param {string} hash - The hash to compare against
+   * @returns {Promise<boolean>} True if password matches hash
    */
-  async doubleEncrypt(message, password1, password2) {
-    try {
-      const result = await crypto.doubleEncrypt(message, password1, password2);
-      return result.encrypted;
-    } catch (error) {
-      console.error('2DE encryption error:', error);
-      throw error;
-    }
+  async verifyPassword(password, hash) {
+    const passwordHash = await this.hashPassword(password);
+    return passwordHash === hash;
   },
 
   /**
-   * Double decryption
+   * Generate a random salt
+   * @param {number} length - Length of the salt
+   * @returns {string} Random salt in hex format
    */
-  async doubleDecrypt(encrypted, password1, password2) {
-    try {
-      return await crypto.doubleDecrypt(encrypted, password1, password2);
-    } catch (error) {
-      console.error('2DE decryption error:', error);
-      throw error;
-    }
+  generateSalt(length = 16) {
+    const array = new Uint8Array(length);
+    window.crypto.getRandomValues(array);
+    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
   },
 
   /**
-   * Generate secure password
+   * Hash password with salt
+   * @param {string} password - The password to hash
+   * @param {string} salt - The salt to use
+   * @returns {Promise<string>} The salted hash
    */
-  generatePassword(length = 32) {
-    return crypto.generateSecurePassword(length);
+  async hashPasswordWithSalt(password, salt) {
+    const combined = password + salt;
+    return await this.hashPassword(combined);
   },
 
   /**
-   * Hash data using SHA-256
+   * Verify password with salt
+   * @param {string} password - The password to verify
+   * @param {string} hash - The hash to compare against
+   * @param {string} salt - The salt used
+   * @returns {Promise<boolean>} True if password matches
    */
-  async hash(data) {
-    return await crypto.hash(data);
+  async verifyPasswordWithSalt(password, hash, salt) {
+    const passwordHash = await this.hashPasswordWithSalt(password, salt);
+    return passwordHash === hash;
+  },
+
+  /**
+   * Generate a secure random password
+   * @param {number} length - Length of the password
+   * @returns {string} Random password
+   */
+  generateSecurePassword(length = 16) {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    const array = new Uint8Array(length);
+    window.crypto.getRandomValues(array);
+    return Array.from(array)
+      .map(x => charset[x % charset.length])
+      .join('');
   }
 };
 
 export { EncryptionService };
+export default EncryptionService;

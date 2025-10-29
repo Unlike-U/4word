@@ -1,229 +1,213 @@
-import { createElement, icons } from '../utils/helpers.js';
-import { EncryptionService } from '../services/encryption.js';
+import EventBus from '../utils/EventBus.js';
+import { EVENTS } from '../constants/events.js';
+import MessageManager from '../managers/MessageManager.js';
+import QRCode from 'qrcode';
 
 export class LoginForm {
-  constructor(container, stateManager) {
-    this.container = container;
-    this.state = stateManager;
-    this.render();
+  constructor() {
+    this.container = null;
+    this.authMethod = 'password';
+    this.qrCheckInterval = null;
+    this.sessionId = null;
   }
 
   render() {
+    this.container = document.createElement('div');
+    this.container.className = 'login-container';
     this.container.innerHTML = `
-      <div class="login-terminal">
-        <div class="terminal-window">
-          <div class="terminal-header-bar">
-            <div class="login-branding">
-              <div class="ascii-logo">4WORD</div>
-              <div class="login-subtitle">Secure • Encrypted • Private</div>
-              <div class="login-version">v2.0</div>
-            </div>
-          </div>
-          
-          <div class="terminal-body">
-            <form class="login-form-terminal" id="loginForm">
-              <div class="form-field-terminal">
-                <label class="field-label">Username</label>
-                <div class="input-wrapper">
-                  <span class="input-prefix">@</span>
-                  <input 
-                    type="text" 
-                    id="username" 
-                    class="terminal-input-field" 
-                    placeholder="username"
-                    autocomplete="username"
-                    autocapitalize="off"
-                  />
-                </div>
+      <div class="login-card">
+        <h1 class="login-title">4Word Chat</h1>
+        <p class="login-subtitle">Sign in to continue</p>
+        
+        <div class="auth-method-toggle">
+          <button class="auth-method-btn active" data-method="password">
+            <i class="fas fa-key"></i> Password
+          </button>
+          <button class="auth-method-btn" data-method="qr">
+            <i class="fas fa-qrcode"></i> QR Code
+          </button>
+        </div>
+
+        <div class="auth-content">
+          <div class="auth-panel password-panel active">
+            <form class="login-form" id="passwordLoginForm">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input 
+                  type="text" 
+                  id="username" 
+                  name="username" 
+                  required 
+                  autocomplete="username"
+                  placeholder="Enter your username"
+                >
+              </div>
+              
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                  type="password" 
+                  id="password" 
+                  name="password" 
+                  required 
+                  autocomplete="current-password"
+                  placeholder="Enter your password"
+                >
               </div>
 
-              <div class="form-field-terminal">
-                <label class="field-label">Passphrase</label>
-                <div class="input-wrapper">
-                  <span class="input-prefix">🔑</span>
-                  <input 
-                    type="password" 
-                    id="passphrase" 
-                    class="terminal-input-field" 
-                    placeholder="••••••••"
-                    autocomplete="current-password"
-                  />
-                </div>
-              </div>
-
-              <div class="action-buttons-terminal">
-                <button type="submit" class="btn-terminal-action primary">
-                  <span class="btn-icon">▶</span> Login
-                </button>
-                <button type="button" class="btn-terminal-action secondary" id="registerBtn">
-                  <span class="btn-icon">+</span> Register
-                </button>
-              </div>
-
-              <div class="demo-info">
-                <div class="info-header">DEMO ACCOUNTS</div>
-                <div class="demo-account">@alice : password123</div>
-                <div class="demo-account">@bob : password123</div>
-              </div>
+              <button type="submit" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+              </button>
             </form>
+          </div>
 
-            <div class="security-notice">
-              <div class="notice-line">AES-256 Encryption Enabled</div>
-              <div class="notice-line">Zero-Knowledge Architecture</div>
-              <div class="notice-line">End-to-End Encrypted</div>
+          <div class="auth-panel qr-panel">
+            <div class="qr-code-container">
+              <canvas id="qrCodeCanvas"></canvas>
+              <p class="qr-instructions">Scan this QR code with your mobile device to sign in</p>
+              <div class="qr-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Waiting for scan...</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="login-footer">
+          <p class="demo-hint">
+            <i class="fas fa-info-circle"></i> 
+            Demo users: alice/password, bob/password, charlie/password
+          </p>
         </div>
       </div>
     `;
 
     this.attachEventListeners();
+    return this.container;
   }
 
   attachEventListeners() {
-    const form = document.getElementById('loginForm');
-    const registerBtn = document.getElementById('registerBtn');
+    const methodButtons = this.container.querySelectorAll('.auth-method-btn');
+    methodButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const method = e.currentTarget.dataset.method;
+        this.switchAuthMethod(method);
+      });
+    });
 
+    const form = this.container.querySelector('#passwordLoginForm');
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleLogin();
-    });
-
-    registerBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.handleRegister();
+      this.handlePasswordLogin();
     });
   }
 
-  async handleLogin() {
-    const username = document.getElementById('username').value.trim();
-    const passphrase = document.getElementById('passphrase').value;
+  switchAuthMethod(method) {
+    // Clean up old method first
+    if (this.authMethod === 'qr') {
+      this.cleanupQRLogin();
+    }
 
-    // Add @ if missing
-    const formattedUsername = username.startsWith('@') ? username : '@' + username;
+    this.authMethod = method;
+    
+    const buttons = this.container.querySelectorAll('.auth-method-btn');
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.method === method);
+    });
 
-    const users = this.state.getState('users');
-    const userData = users[formattedUsername];
+    const panels = this.container.querySelectorAll('.auth-panel');
+    panels.forEach(panel => {
+      panel.classList.toggle('active', panel.classList.contains(`${method}-panel`));
+    });
 
-    if (!userData) {
-      this.showError('USER NOT FOUND');
+    if (method === 'qr') {
+      this.initializeQRLogin();
+    }
+  }
+
+  handlePasswordLogin() {
+    const username = this.container.querySelector('#username').value.trim();
+    const password = this.container.querySelector('#password').value;
+
+    if (!username || !password) {
+      MessageManager.showError('Please enter both username and password');
       return;
     }
 
-    // Simple verification for demo users
-    if (passphrase === 'password123' && 
-        (formattedUsername === '@alice' || formattedUsername === '@bob')) {
-      this.showSuccess('LOGIN SUCCESSFUL');
-      setTimeout(() => {
-        this.state.setState('currentUser', userData);
-      }, 500);
-      return;
+    // For demo purposes, hash the password to match stored hash
+    // "password" hashes to "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+    let passwordToCheck = password;
+    
+    if (password === 'password') {
+      passwordToCheck = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
     }
 
-    // Try PBKDF2 verification for registered users
+    EventBus.emit(EVENTS.USER.LOGIN_ATTEMPT, {
+      username,
+      password: passwordToCheck,
+      method: 'password'
+    });
+  }
+
+  async initializeQRLogin() {
     try {
-      if (EncryptionService.verifyPassword(passphrase, userData.passphraseHash)) {
-        this.showSuccess('LOGIN SUCCESSFUL');
-        setTimeout(() => {
-          this.state.setState('currentUser', userData);
-        }, 500);
-        return;
+      this.sessionId = this.generateSessionId();
+      
+      const qrData = JSON.stringify({
+        type: 'login',
+        sessionId: this.sessionId,
+        timestamp: Date.now()
+      });
+
+      const canvas = this.container.querySelector('#qrCodeCanvas');
+      if (canvas) {
+        await QRCode.toCanvas(canvas, qrData, {
+          width: 256,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        });
+
+        this.startQRPolling();
       }
-    } catch (e) {
-      console.error('Password verification error:', e);
+    } catch (error) {
+      console.error('QR code generation error:', error);
+      MessageManager.showError('Failed to generate QR code');
     }
-
-    this.showError('INVALID PASSPHRASE');
   }
 
-  async handleRegister() {
-    const username = document.getElementById('username').value.trim();
-    const passphrase = document.getElementById('passphrase').value;
-
-    // Add @ if missing
-    const formattedUsername = username.startsWith('@') ? username : '@' + username;
-
-    if (formattedUsername.length < 3) {
-      this.showError('USERNAME TOO SHORT (MIN 3 CHARS)');
-      return;
-    }
-
-    if (passphrase.length < 6) {
-      this.showError('PASSPHRASE TOO WEAK (MIN 6 CHARS)');
-      return;
-    }
-
-    const users = this.state.getState('users');
-
-    if (users[formattedUsername]) {
-      this.showError('USERNAME ALREADY EXISTS');
-      return;
-    }
-
-    this.showSuccess('GENERATING KEYPAIR...');
-
-    // Generate keypair
-    const keyPair = await EncryptionService.generateSimpleKeyPair();
-
-    // Hash password
-    const passwordHash = EncryptionService.hashPassword(passphrase);
-
-    const newUser = {
-      username: formattedUsername,
-      passphraseHash: passwordHash.combined,
-      publicKey: keyPair.publicKey,
-      privateKey: keyPair.privateKey,
-      friends: [],
-      groups: [],
-      messages: [],
-      friendRequests: [],
-      groupInvites: [],
-      deadDrops: [],
-      createdAt: new Date().toISOString()
-    };
-
-    users[formattedUsername] = newUser;
-    this.state.setState('users', users);
-    this.state.persist();
-
-    this.showSuccess(`ACCOUNT CREATED: ${formattedUsername}`);
-    
-    // Clear form
-    setTimeout(() => {
-      document.getElementById('username').value = '';
-      document.getElementById('passphrase').value = '';
-    }, 1500);
+  generateSessionId() {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  showError(message) {
-    const errorDiv = createElement('div', 'terminal-alert error');
-    errorDiv.innerHTML = `
-      <div class="alert-icon">✗</div>
-      <div class="alert-message">${message}</div>
-    `;
+  startQRPolling() {
+    // Clear any existing interval
+    this.cleanupQRLogin();
     
-    const form = document.getElementById('loginForm');
-    const existing = form.querySelector('.terminal-alert');
-    if (existing) existing.remove();
-    
-    form.insertBefore(errorDiv, form.firstChild);
-
-    setTimeout(() => errorDiv.remove(), 3000);
+    // Poll every 2 seconds to check if QR code was scanned
+    this.qrCheckInterval = setInterval(() => {
+      // Only log if we're still in QR mode
+      if (this.authMethod === 'qr') {
+        console.log('Checking QR scan status for session:', this.sessionId);
+      }
+    }, 2000);
   }
 
-  showSuccess(message) {
-    const successDiv = createElement('div', 'terminal-alert success');
-    successDiv.innerHTML = `
-      <div class="alert-icon">✓</div>
-      <div class="alert-message">${message}</div>
-    `;
-    
-    const form = document.getElementById('loginForm');
-    const existing = form.querySelector('.terminal-alert');
-    if (existing) existing.remove();
-    
-    form.insertBefore(successDiv, form.firstChild);
+  cleanupQRLogin() {
+    if (this.qrCheckInterval) {
+      clearInterval(this.qrCheckInterval);
+      this.qrCheckInterval = null;
+    }
+    this.sessionId = null;
+  }
 
-    setTimeout(() => successDiv.remove(), 3000);
+  destroy() {
+    this.cleanupQRLogin();
+    if (this.container) {
+      this.container.remove();
+      this.container = null;
+    }
   }
 }

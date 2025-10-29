@@ -1,123 +1,91 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const webpack = require('webpack');
+require('dotenv').config();
 
 module.exports = (env, argv) => {
   const isDevelopment = argv.mode === 'development';
 
   return {
     entry: './src/js/index.js',
-    
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: 'js/[name].[contenthash].js',
+      filename: isDevelopment ? 'js/[name].js' : 'js/[name].[contenthash].js',
       clean: true,
-      publicPath: '/'
     },
-    
-    devtool: isDevelopment ? 'source-map' : false,
-    
     devServer: {
       static: {
-        directory: path.join(__dirname, 'dist')
-      },
-      hot: true,
-      port: 9000,
-      host: '0.0.0.0',
-      allowedHosts: 'all',
-      client: {
-        webSocketURL: {
-          hostname: '0.0.0.0',
-          pathname: '/ws',
-          port: 9000,
-          protocol: 'ws'
-        },
-        overlay: {
-          warnings: false,
-          errors: true
-        }
+        directory: path.join(__dirname, 'dist'),
       },
       compress: true,
+      port: 9000,
+      hot: true,
       historyApiFallback: true,
-      open: false
+      open: false,
     },
-    
     module: {
       rules: [
-        // JavaScript
         {
           test: /\.js$/,
           exclude: /node_modules/,
           use: {
             loader: 'babel-loader',
             options: {
-              presets: ['@babel/preset-env']
-            }
-          }
+              presets: ['@babel/preset-env'],
+            },
+          },
         },
-        
-        // SCSS/CSS
         {
           test: /\.scss$/,
           use: [
             isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
             'css-loader',
-            {
-              loader: 'sass-loader',
-              options: {
-                sassOptions: {
-                  silenceDeprecations: ['legacy-js-api']
-                }
-              }
-            }
-          ]
+            'sass-loader',
+          ],
         },
-        
-        // Images
         {
-          test: /\.(png|svg|jpg|jpeg|gif|webp)$/i,
+          test: /\.(png|svg|jpg|jpeg|gif)$/i,
           type: 'asset/resource',
-          generator: {
-            filename: 'images/[hash][ext][query]'
-          }
         },
-        
-        // Fonts
-        {
-          test: /\.(woff|woff2|eot|ttf|otf)$/i,
-          type: 'asset/resource',
-          generator: {
-            filename: 'fonts/[hash][ext][query]'
-          }
-        }
-      ]
+      ],
     },
-    
     plugins: [
       new HtmlWebpackPlugin({
         template: './src/index.html',
-        minify: !isDevelopment
+        filename: 'index.html',
       }),
       new MiniCssExtractPlugin({
-        filename: 'css/[name].[contenthash].css'
-      })
+        filename: isDevelopment ? 'css/[name].css' : 'css/[name].[contenthash].css',
+      }),
+      new webpack.DefinePlugin({
+        'process.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL),
+        'process.env.CONTRACT_ADDRESS': JSON.stringify(process.env.CONTRACT_ADDRESS),
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      }),
     ],
-    
     optimization: {
       splitChunks: {
-        chunks: 'all',
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
-            priority: 10
-          }
-        }
+            chunks: 'all',
+          },
+        },
+      },
+    },
+    resolve: {
+      extensions: ['.js', '.json'],
+      fallback: {
+        "crypto": false,
+        "stream": false,
+        "assert": false,
+        "http": false,
+        "https": false,
+        "os": false,
+        "url": false,
       }
     },
-    
-    performance: {
-      hints: false
-    }
   };
 };

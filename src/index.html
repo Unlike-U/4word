@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Conditional CSP: strict for production, relaxed for development -->
-    <% if (!htmlWebpackPlugin.options.templateParameters.isDevelopment) { %>
-    <!-- Production CSP -->
-    <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self';">
-    <% } %>
-    <!-- Development: No CSP to allow webpack HMR -->
-    
-    <title>4word - Secure Communication</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>4Word - Secure Chat</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="app"></div>
-    <div id="modal-root"></div>
-    <canvas id="three-bg"></canvas>
+  <div id="app"></div>
 </body>
 </html>
