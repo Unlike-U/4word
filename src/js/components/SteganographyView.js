@@ -7,7 +7,7 @@ import { Validator } from '../utils/validation.js';
 
 import crypto from '../crypto/webCrypto.js';
 
-export class AdvancedSteganography {
+export class SteganographyView {
   constructor() {
     this.SIGNATURE = 'FW'; // 4Word signature
     this.VERSION = 1;

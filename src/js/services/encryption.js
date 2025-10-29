@@ -71,4 +71,4 @@ export const encryption = {
   }
 };
 
-export default encryption;
+export { EncryptionService };
