@@ -38,21 +38,12 @@ export class WalletConnector {
             <i class="fas fa-sign-out-alt"></i>
           </button>
         </div>
-        <p class="wallet-hint">
-          <i class="fas fa-check-circle"></i> 
-          Permanent messages enabled
-        </p>
       `;
     } else {
       this.container.innerHTML = `
         <button class="wallet-connect-btn" id="connectWalletBtn">
           <i class="fab fa-ethereum"></i>
-          Connect Wallet for Permanent Messages
         </button>
-        <p class="wallet-hint">
-          <i class="fas fa-info-circle"></i> 
-          Requires MetaMask. Gas fees apply for permanent storage.
-        </p>
       `;
     }
 
