@@ -2106,3 +2106,133 @@ body.dark-mode {
         font-size: 1.2rem;
     }
 }
+
+// ============================================
+// TERMINAL VIEW
+// ============================================
+.terminal-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1a1a1a;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  padding: 20px;
+
+  @media (min-width: 768px) {
+    padding: 30px;
+  }
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
+
+  i {
+    color: #00ff00;
+    font-size: 24px;
+  }
+
+  h2 {
+    color: #00ff00;
+    font-size: 20px;
+    font-weight: 700;
+  }
+}
+
+.terminal-output {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  background: #0a0a0a;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+
+  .terminal-line {
+    margin-bottom: 8px;
+
+    &.command {
+      color: #00ff00;
+      &::before {
+        content: '$ ';
+        color: #0088ff;
+      }
+    }
+
+    &.output {
+      color: #cccccc;
+    }
+
+    &.error {
+      color: #ff4444;
+    }
+
+    &.success {
+      color: #00ff00;
+    }
+  }
+}
+
+.terminal-input-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .terminal-prompt {
+    color: #0088ff;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .terminal-input {
+    flex: 1;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    color: #00ff00;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    min-height: 48px;
+
+    &:focus {
+      outline: none;
+      border-color: #00ff00;
+      box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.1);
+    }
+  }
+
+  .terminal-submit {
+    background: #00ff00;
+    color: #000;
+    border: none;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    i {
+      font-size: 18px;
+    }
+
+    &:hover {
+      background: #00cc00;
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
