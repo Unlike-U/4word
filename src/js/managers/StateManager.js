@@ -1,191 +1,166 @@
-import initialUsers from '../../data/initialUsers.json';
+import BackendService from '../services/BackendService.js';
+import Web3Service from '../services/Web3Service.js';
 
+/**
+ * State Manager - Handles application state and user data
+ */
 class StateManagerClass {
   constructor() {
-    this.storageKey = '4word_app_state';
-    this.state = this.loadState();
+    this.currentUser = null;
+    this.users = [];
+    this.isInitialized = false;
   }
 
-  loadState() {
+  /**
+   * Initialize state manager
+   */
+  async initialize(currentUser) {
+    if (this.isInitialized) return;
+
+    this.currentUser = currentUser;
+    
+    // Load users from server
+    await this.loadUsers();
+    
+    this.isInitialized = true;
+  }
+
+  /**
+   * Load users from backend server
+   */
+  async loadUsers() {
     try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        const state = JSON.parse(saved);
-        if (!Array.isArray(state.users)) {
-          state.users = initialUsers;
-        }
-        return state;
+      // Try to fetch from backend
+      const response = await BackendService.getOnlineUsers();
+      
+      if (response && response.users) {
+        this.users = response.users;
+        
+        // Cache in localStorage for offline access
+        this.cacheOnlineUsers(response.users);
+      } else {
+        // Fallback to cached users
+        this.users = this.getCachedUsers();
       }
     } catch (error) {
-      console.error('Error loading state:', error);
+      console.warn('Failed to load users from server, using cached data:', error);
+      this.users = this.getCachedUsers();
     }
-
-    console.log('No saved data');
-    return {
-      users: Array.isArray(initialUsers) ? initialUsers : [],
-      currentUser: null,
-      messages: [],
-      keyPairs: {}, // Store user keypairs
-      publicKeys: {}, // Store public keys for all users
-      settings: {
-        theme: 'light',
-        notifications: true
-      }
-    };
   }
 
-  saveState() {
+  /**
+   * Get cached users from localStorage
+   */
+  getCachedUsers() {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+      const cached = localStorage.getItem('4word_online_users');
+      if (cached) {
+        return JSON.parse(cached);
+      }
     } catch (error) {
-      console.error('Error saving state:', error);
+      console.error('Error reading cached users:', error);
+    }
+    return [];
+  }
+
+  /**
+   * Cache online users for offline access
+   */
+  cacheOnlineUsers(users) {
+    try {
+      // Only cache public data (no private keys or password hashes)
+      const publicUsers = users.map(user => ({
+        username: user.username,
+        displayName: user.displayName,
+        publicKey: user.publicKey,
+        avatar: user.avatar,
+        online: user.online || false,
+      }));
+      
+      localStorage.setItem('4word_online_users', JSON.stringify(publicUsers));
+    } catch (error) {
+      console.error('Error caching users:', error);
     }
   }
 
-  // User methods
+  /**
+   * Get all users
+   */
   getUsers() {
-    if (!Array.isArray(this.state.users)) {
-      this.state.users = [];
-    }
-    return this.state.users;
+    return this.users;
   }
 
+  /**
+   * Get user by username
+   */
+  getUserByUsername(username) {
+    return this.users.find(u => u.username === username);
+  }
+
+  /**
+   * Get current user
+   */
   getCurrentUser() {
-    return this.state.currentUser;
+    return this.currentUser;
   }
 
+  /**
+   * Update current user
+   */
   setCurrentUser(user) {
-    this.state.currentUser = user;
-    this.saveState();
+    this.currentUser = user;
   }
 
-  clearCurrentUser() {
-    this.state.currentUser = null;
-    this.saveState();
-  }
-
-  // KeyPair methods
-  saveUserKeyPair(username, publicKey, encryptedPrivateKey) {
-    if (!this.state.keyPairs) {
-      this.state.keyPairs = {};
-    }
-    if (!this.state.publicKeys) {
-      this.state.publicKeys = {};
+  /**
+   * Add or update user in state
+   */
+  updateUser(user) {
+    const index = this.users.findIndex(u => u.username === user.username);
+    
+    if (index >= 0) {
+      this.users[index] = { ...this.users[index], ...user };
+    } else {
+      this.users.push(user);
     }
     
-    this.state.keyPairs[username] = {
-      publicKey,
-      privateKey: encryptedPrivateKey
+    // Update cache
+    this.cacheOnlineUsers(this.users);
+  }
+
+  /**
+   * Remove user from state
+   */
+  removeUser(username) {
+    this.users = this.users.filter(u => u.username !== username);
+    this.cacheOnlineUsers(this.users);
+  }
+
+  /**
+   * Clear all state
+   */
+  clear() {
+    this.currentUser = null;
+    this.users = [];
+    this.isInitialized = false;
+    
+    // Clear cached data
+    localStorage.removeItem('4word_online_users');
+  }
+
+  /**
+   * Get blockchain state
+   */
+  getBlockchainState() {
+    return {
+      connected: Web3Service.isConnected,
+      account: Web3Service.currentAccount,
+      network: Web3Service.network,
     };
-    
-    this.state.publicKeys[username] = publicKey;
-    
-    this.saveState();
-    console.log(`Saved keypair for ${username}`);
-  }
-
-  getUserKeyPair(username) {
-    if (!this.state.keyPairs) return null;
-    return this.state.keyPairs[username];
-  }
-
-  getPublicKey(username) {
-    if (!this.state.publicKeys) return null;
-    return this.state.publicKeys[username];
-  }
-
-  getAllPublicKeys() {
-    return this.state.publicKeys || {};
-  }
-
-  // Message methods
-  getMessages() {
-    return this.state.messages || [];
-  }
-
-  addMessage(message) {
-    if (!this.state.messages) {
-      this.state.messages = [];
-    }
-    this.state.messages.push({
-      ...message,
-      id: message.id || Date.now(),
-      timestamp: message.timestamp || new Date().toISOString(),
-      read: false
-    });
-    this.saveState();
-  }
-
-  markMessageAsRead(messageId) {
-    if (!this.state.messages) return;
-    
-    const message = this.state.messages.find(m => m.id === messageId);
-    if (message) {
-      message.read = true;
-      this.saveState();
-      console.log(`Message ${messageId} marked as read`);
-    }
-  }
-
-  deleteMessage(messageId) {
-    if (!this.state.messages) return;
-    
-    const initialLength = this.state.messages.length;
-    this.state.messages = this.state.messages.filter(m => m.id !== messageId);
-    
-    if (this.state.messages.length < initialLength) {
-      this.saveState();
-      console.log(`Message ${messageId} permanently deleted from storage`);
-      return true;
-    }
-    return false;
-  }
-
-  cleanupSelfDestructMessages() {
-    if (!this.state.messages) return;
-    
-    const initialLength = this.state.messages.length;
-    this.state.messages = this.state.messages.filter(m => {
-      if (m.messageType !== 'self-destruct') return true;
-      if (!m.read) return true;
-      return false;
-    });
-    
-    if (this.state.messages.length < initialLength) {
-      this.saveState();
-      console.log(`Cleaned up ${initialLength - this.state.messages.length} self-destruct messages`);
-    }
-  }
-
-  // Settings methods
-  getSettings() {
-    return this.state.settings || {};
-  }
-
-  updateSettings(settings) {
-    this.state.settings = {
-      ...this.state.settings,
-      ...settings
-    };
-    this.saveState();
-  }
-
-  // Clear all data
-  clearAll() {
-    this.state = {
-      users: Array.isArray(initialUsers) ? initialUsers : [],
-      currentUser: null,
-      messages: [],
-      keyPairs: {},
-      publicKeys: {},
-      settings: {
-        theme: 'light',
-        notifications: true
-      }
-    };
-    this.saveState();
   }
 }
 
-export const StateManager = new StateManagerClass();
+// Export singleton instance
+const StateManager = new StateManagerClass();
+
+export { StateManager };
 export default StateManager;

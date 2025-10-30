@@ -1,18 +1,23 @@
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 import CryptoJS from 'crypto-js';
+import SecureCrypto from '../crypto/webCrypto.js';
 
 export class AirGapView {
-  constructor() {
+  constructor(currentUser) {
     this.container = null;
     this.currentMode = 'encode';
     this.html5QrCode = null;
     this.isScanning = false;
+    this.currentUser = currentUser;
+    this.users = [];
   }
 
-  render() {
+  async render() {
     this.container = document.createElement('div');
     this.container.className = 'airgap-view';
+
+    await this.loadUsers();
 
     this.container.innerHTML = `
       <div class="airgap-header">
@@ -20,7 +25,7 @@ export class AirGapView {
           <i class="fas fa-plane-slash"></i>
           Air Gap Security
         </h2>
-        <p class="airgap-subtitle">Offline data transfer via QR codes with optional encryption</p>
+        <p class="airgap-subtitle">Offline data transfer via QR codes with end-to-end encryption</p>
       </div>
 
       <div class="airgap-mode-toggle">
@@ -37,6 +42,28 @@ export class AirGapView {
       <div class="airgap-content">
         <!-- ENCODE PANEL -->
         <div class="airgap-panel active" data-panel="encode">
+          <div class="airgap-section">
+            <h3>Recipient</h3>
+            <div class="recipient-selector">
+              <label>
+                <i class="fas fa-user-shield"></i>
+                Send to
+              </label>
+              <select class="airgap-select" id="recipientSelect">
+                <option value="@everyone">@everyone (Public)</option>
+                ${this.users.map(user => `
+                  <option value="${user.username}" ${user.username === this.currentUser.username ? 'disabled' : ''}>
+                    ${user.displayName || user.username} ${user.username === this.currentUser.username ? '(You)' : ''}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            <div class="recipient-info">
+              <i class="fas fa-info-circle"></i>
+              <span id="recipientInfo">Public message - anyone can decode this QR code</span>
+            </div>
+          </div>
+
           <div class="airgap-section">
             <h3>Data to Encode</h3>
             <textarea 
@@ -55,26 +82,30 @@ export class AirGapView {
           </div>
 
           <div class="airgap-section">
-            <h3>Optional Encryption</h3>
+            <h3>Encryption</h3>
+            <div class="encryption-info" id="encryptionInfo">
+              <i class="fas fa-shield-alt"></i>
+              <span>Messages to specific users are automatically RSA encrypted</span>
+            </div>
             <div class="encryption-toggle">
               <label class="toggle-switch">
                 <input type="checkbox" id="encodeEncryptToggle">
                 <span class="toggle-slider"></span>
-                <span class="toggle-label">Encrypt data before encoding</span>
+                <span class="toggle-label">Add additional password layer</span>
               </label>
             </div>
             <div class="encryption-key-group" id="encodeKeyGroup" style="display: none;">
               <div class="encryption-key-container">
                 <label>
                   <i class="fas fa-key"></i>
-                  Encryption Key
+                  Encryption Password
                 </label>
                 <div style="display: flex; gap: 8px;">
                   <input 
                     type="password" 
                     class="encryption-key-input" 
                     id="encodeKey" 
-                    placeholder="Enter encryption key..."
+                    placeholder="Enter encryption password..."
                   />
                   <button class="toggle-key-btn" id="toggleEncodeKey">
                     <i class="fas fa-eye"></i>
@@ -83,7 +114,7 @@ export class AirGapView {
               </div>
               <p class="encryption-hint">
                 <i class="fas fa-info-circle"></i>
-                Remember this key - you'll need it to decrypt the data
+                This adds an extra AES layer on top of RSA encryption
               </p>
             </div>
           </div>
@@ -195,18 +226,19 @@ export class AirGapView {
 
           <!-- Decryption Section -->
           <div class="airgap-section" id="decryptSection" style="display: none;">
-            <h3>Decryption Required</h3>
+            <h3>Additional Decryption Required</h3>
+            <p class="decrypt-message">This message has an additional password layer</p>
             <div class="encryption-key-container">
               <label>
                 <i class="fas fa-key"></i>
-                Decryption Key
+                Decryption Password
               </label>
               <div style="display: flex; gap: 8px;">
                 <input 
                   type="password" 
                   class="encryption-key-input" 
                   id="decodeKey" 
-                  placeholder="Enter decryption key..."
+                  placeholder="Enter decryption password..."
                 />
                 <button class="toggle-key-btn" id="toggleDecodeKey">
                   <i class="fas fa-eye"></i>
@@ -244,6 +276,21 @@ export class AirGapView {
     return this.container;
   }
 
+  async loadUsers() {
+    try {
+      // Get users from localStorage or global state
+      const storedUsers = localStorage.getItem('4word_online_users');
+      if (storedUsers) {
+        this.users = JSON.parse(storedUsers);
+      } else {
+        this.users = [];
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      this.users = [];
+    }
+  }
+
   attachEventListeners() {
     // Mode toggle
     const modeButtons = this.container.querySelectorAll('.airgap-mode-btn');
@@ -254,7 +301,13 @@ export class AirGapView {
       });
     });
 
-    // ENCODE PANEL
+    // Recipient select
+    const recipientSelect = this.container.querySelector('#recipientSelect');
+    recipientSelect?.addEventListener('change', (e) => {
+      this.updateRecipientInfo(e.target.value);
+    });
+
+    // Data input
     const encodeData = this.container.querySelector('#encodeData');
     const encodeDataLength = this.container.querySelector('#encodeDataLength');
     const encodeWarning = this.container.querySelector('#encodeWarning');
@@ -287,15 +340,14 @@ export class AirGapView {
     const generateQrBtn = this.container.querySelector('#generateQrBtn');
     generateQrBtn?.addEventListener('click', () => this.generateQRCode());
 
-    // Download QR
+    // Download & Print
     const downloadQrBtn = this.container.querySelector('#downloadQrBtn');
     downloadQrBtn?.addEventListener('click', () => this.downloadQRCode());
 
-    // Print QR
     const printQrBtn = this.container.querySelector('#printQrBtn');
     printQrBtn?.addEventListener('click', () => this.printQRCode());
 
-    // DECODE PANEL
+    // Scan methods
     const scanMethodBtns = this.container.querySelectorAll('.scan-method-btn');
     scanMethodBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -304,21 +356,20 @@ export class AirGapView {
       });
     });
 
-    // Camera scanner
+    // Camera controls
     const startScanBtn = this.container.querySelector('#startScanBtn');
     const stopScanBtn = this.container.querySelector('#stopScanBtn');
 
     startScanBtn?.addEventListener('click', () => this.startCameraScanner());
     stopScanBtn?.addEventListener('click', () => this.stopCameraScanner());
 
-    // Upload scanner
+    // Upload
     const qrUploadZone = this.container.querySelector('#qrUploadZone');
     const qrFileInput = this.container.querySelector('#qrFileInput');
 
     qrUploadZone?.addEventListener('click', () => qrFileInput.click());
     qrFileInput?.addEventListener('change', (e) => this.handleFileUpload(e));
 
-    // Drag and drop
     qrUploadZone?.addEventListener('dragover', (e) => {
       e.preventDefault();
       qrUploadZone.classList.add('drag-over');
@@ -337,11 +388,10 @@ export class AirGapView {
       }
     });
 
-    // Remove upload
     const removeUploadBtn = this.container.querySelector('#removeUploadBtn');
     removeUploadBtn?.addEventListener('click', () => this.clearUpload());
 
-    // Toggle decode key visibility
+    // Decode key toggle
     const toggleDecodeKey = this.container.querySelector('#toggleDecodeKey');
     const decodeKeyInput = this.container.querySelector('#decodeKey');
 
@@ -351,44 +401,40 @@ export class AirGapView {
       toggleDecodeKey.innerHTML = `<i class="fas fa-eye${isPassword ? '-slash' : ''}"></i>`;
     });
 
-    // Decrypt button
+    // Decrypt
     const decryptBtn = this.container.querySelector('#decryptBtn');
     decryptBtn?.addEventListener('click', () => this.decryptData());
 
-    // Copy decoded
+    // Copy & Clear
     const copyDecodedBtn = this.container.querySelector('#copyDecodedBtn');
     copyDecodedBtn?.addEventListener('click', () => this.copyDecoded());
 
-    // Clear decode
     const clearDecodeBtn = this.container.querySelector('#clearDecodeBtn');
     clearDecodeBtn?.addEventListener('click', () => this.clearDecode());
+
+    // Initialize
+    this.updateRecipientInfo('@everyone');
   }
 
-  switchMode(mode) {
-    this.currentMode = mode;
+  updateRecipientInfo(recipient) {
+    const recipientInfo = this.container.querySelector('#recipientInfo');
+    const encryptionInfo = this.container.querySelector('#encryptionInfo');
 
-    // Update buttons
-    const modeButtons = this.container.querySelectorAll('.airgap-mode-btn');
-    modeButtons.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === mode);
-    });
-
-    // Update panels
-    const panels = this.container.querySelectorAll('.airgap-panel');
-    panels.forEach(panel => {
-      panel.classList.toggle('active', panel.dataset.panel === mode);
-    });
-
-    // Stop scanner if switching away from decode
-    if (mode !== 'decode' && this.isScanning) {
-      this.stopCameraScanner();
+    if (recipient === '@everyone') {
+      recipientInfo.innerHTML = '<i class="fas fa-globe"></i> Public message - anyone can decode this QR code';
+      encryptionInfo.innerHTML = '<i class="fas fa-unlock"></i><span>No automatic encryption for public messages</span>';
+    } else {
+      const user = this.users.find(u => u.username === recipient);
+      recipientInfo.innerHTML = `<i class="fas fa-lock"></i> Encrypted for ${user?.displayName || recipient} - only they can decode`;
+      encryptionInfo.innerHTML = '<i class="fas fa-shield-alt"></i><span>Message will be RSA encrypted for recipient</span>';
     }
   }
 
   async generateQRCode() {
     const encodeData = this.container.querySelector('#encodeData').value.trim();
-    const encryptToggle = this.container.querySelector('#encodeEncryptToggle').checked;
-    const encodeKey = this.container.querySelector('#encodeKey').value;
+    const recipient = this.container.querySelector('#recipientSelect').value;
+    const addAES = this.container.querySelector('#encodeEncryptToggle').checked;
+    const aesKey = this.container.querySelector('#encodeKey').value;
     const qrSize = parseInt(this.container.querySelector('#qrSize').value);
     const errorLevel = this.container.querySelector('#qrErrorLevel').value;
 
@@ -397,24 +443,60 @@ export class AirGapView {
       return;
     }
 
-    if (encryptToggle && !encodeKey) {
-      this.showMessage('Please enter an encryption key', 'error');
+    if (addAES && !aesKey) {
+      this.showMessage('Please enter an encryption password', 'error');
       return;
     }
 
     try {
       let dataToEncode = encodeData;
+      const metadata = {
+        sender: this.currentUser.username,
+        senderName: this.currentUser.displayName || this.currentUser.username,
+        recipient: recipient,
+        timestamp: Date.now(),
+        layers: []
+      };
 
-      // Encrypt if enabled
-      if (encryptToggle) {
-        const encrypted = CryptoJS.AES.encrypt(encodeData, encodeKey).toString();
-        dataToEncode = `ENCRYPTED:${encrypted}`;
-        this.showMessage('Data encrypted successfully', 'success');
+      // Layer 1: RSA Encryption (if specific recipient)
+      if (recipient !== '@everyone') {
+        const recipientUser = this.users.find(u => u.username === recipient);
+        if (!recipientUser?.publicKey) {
+          this.showMessage('Recipient public key not found', 'error');
+          return;
+        }
+
+        try {
+          dataToEncode = await SecureCrypto.encryptWithPublicKey(dataToEncode, recipientUser.publicKey);
+          metadata.layers.push('RSA');
+          this.showMessage('RSA encryption applied', 'success');
+        } catch (error) {
+          console.error('RSA encryption error:', error);
+          this.showMessage('RSA encryption failed: ' + error.message, 'error');
+          return;
+        }
       }
 
-      // Generate QR code
+      // Layer 2: AES Encryption (optional)
+      if (addAES) {
+        const encrypted = await SecureCrypto.encrypt(dataToEncode, aesKey);
+        dataToEncode = encrypted.encrypted;
+        metadata.layers.push('AES');
+        this.showMessage('AES encryption applied', 'success');
+      }
+
+      // Create payload
+      const payload = {
+        v: 1,
+        m: metadata,
+        d: dataToEncode
+      };
+
+      const finalData = JSON.stringify(payload);
+
+      // Generate QR
       const canvas = this.container.querySelector('#qrCanvas');
-      await QRCode.toCanvas(canvas, dataToEncode, {
+      await QRCode.toCanvas(canvas, finalData, {
         width: qrSize,
         margin: 2,
         errorCorrectionLevel: errorLevel,
@@ -428,15 +510,15 @@ export class AirGapView {
       const qrResult = this.container.querySelector('#qrResult');
       const qrInfo = this.container.querySelector('#qrInfo');
       qrResult.style.display = 'block';
-      qrInfo.textContent = `QR Code generated (${qrSize}x${qrSize}px, ${encryptToggle ? 'encrypted' : 'unencrypted'})`;
+
+      const encLayers = metadata.layers.length > 0 ? metadata.layers.join(' + ') : 'none';
+      qrInfo.textContent = `QR Code generated (${qrSize}x${qrSize}px, encryption: ${encLayers})`;
 
       this.showMessage('QR Code generated successfully', 'success');
-
-      // Scroll to result
       qrResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {
       console.error('QR generation error:', error);
-      this.showMessage('Failed to generate QR code', 'error');
+      this.showMessage('Failed to generate QR code: ' + error.message, 'error');
     }
   }
 
@@ -452,24 +534,15 @@ export class AirGapView {
   printQRCode() {
     const canvas = this.container.querySelector('#qrCanvas');
     const dataUrl = canvas.toDataURL();
-    
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
           <title>Print QR Code</title>
           <style>
-            body { 
-              margin: 0; 
-              display: flex; 
-              justify-content: center; 
-              align-items: center; 
-              min-height: 100vh;
-            }
-            img { 
-              max-width: 100%; 
-              height: auto; 
-            }
+            body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+            img { max-width: 100%; height: auto; }
           </style>
         </head>
         <body>
@@ -492,11 +565,9 @@ export class AirGapView {
     if (method === 'camera') {
       cameraScanner.style.display = 'block';
       uploadScanner.style.display = 'none';
-      if (this.isScanning) this.stopCameraScanner();
     } else {
       cameraScanner.style.display = 'none';
       uploadScanner.style.display = 'block';
-      if (this.isScanning) this.stopCameraScanner();
     }
   }
 
@@ -508,20 +579,15 @@ export class AirGapView {
 
     try {
       this.html5QrCode = new Html5Qrcode("qrReader");
-      
+
       await this.html5QrCode.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           this.handleDecodedQR(decodedText);
           this.stopCameraScanner();
         },
-        (errorMessage) => {
-          // Scanning errors are normal, ignore
-        }
+        () => {}
       );
 
       this.isScanning = true;
@@ -531,7 +597,7 @@ export class AirGapView {
       stopBtn.style.display = 'flex';
     } catch (error) {
       console.error('Camera error:', error);
-      this.showMessage('Failed to access camera. Please check permissions.', 'error');
+      this.showMessage('Failed to access camera', 'error');
     }
   }
 
@@ -539,7 +605,6 @@ export class AirGapView {
     if (this.html5QrCode && this.isScanning) {
       try {
         await this.html5QrCode.stop();
-        this.html5QrCode.clear();
       } catch (error) {
         console.error('Error stopping scanner:', error);
       }
@@ -551,10 +616,10 @@ export class AirGapView {
     const startBtn = this.container.querySelector('#startScanBtn');
     const stopBtn = this.container.querySelector('#stopScanBtn');
 
-    qrReader.style.display = 'none';
-    cameraPlaceholder.style.display = 'flex';
-    startBtn.style.display = 'flex';
-    stopBtn.style.display = 'none';
+    if (qrReader) qrReader.style.display = 'none';
+    if (cameraPlaceholder) cameraPlaceholder.style.display = 'flex';
+    if (startBtn) startBtn.style.display = 'flex';
+    if (stopBtn) stopBtn.style.display = 'none';
   }
 
   handleFileUpload(event) {
@@ -575,12 +640,11 @@ export class AirGapView {
       qrUploadZone.style.display = 'none';
       uploadedPreview.style.display = 'block';
 
-      // Decode QR from image
       try {
         if (!this.html5QrCode) {
           this.html5QrCode = new Html5Qrcode("qrReader");
         }
-        
+
         const decodedText = await this.html5QrCode.scanFile(file, true);
         this.handleDecodedQR(decodedText);
       } catch (error) {
@@ -602,65 +666,84 @@ export class AirGapView {
     this.clearDecode();
   }
 
-  handleDecodedQR(decodedText) {
-    // Check if encrypted
-    if (decodedText.startsWith('ENCRYPTED:')) {
-      this.encryptedData = decodedText.substring(10);
-      const decryptSection = this.container.querySelector('#decryptSection');
-      decryptSection.style.display = 'block';
-      this.showMessage('Encrypted data detected. Enter decryption key.', 'info');
-    } else {
-      this.displayDecodedData(decodedText);
+  async handleDecodedQR(decodedText) {
+    try {
+      const payload = JSON.parse(decodedText);
+      const { m: metadata, d: data } = payload;
+
+      let decryptedData = data;
+
+      // Layer 1: RSA Decryption
+      if (metadata.layers && metadata.layers.includes('RSA')) {
+        if (metadata.recipient !== this.currentUser.username) {
+          this.showMessage(`This message is for @${metadata.recipient}`, 'error');
+          return;
+        }
+
+        try {
+          decryptedData = await SecureCrypto.decryptWithPrivateKey(decryptedData, this.currentUser.privateKey);
+          this.showMessage('RSA decryption successful', 'success');
+        } catch (error) {
+          console.error('RSA decryption error:', error);
+          this.showMessage('Failed to decrypt - invalid private key', 'error');
+          return;
+        }
+      }
+
+      // Layer 2: AES Decryption
+      if (metadata.layers && metadata.layers.includes('AES')) {
+        this.encryptedData = decryptedData;
+        this.metadata = metadata;
+        const decryptSection = this.container.querySelector('#decryptSection');
+        decryptSection.style.display = 'block';
+        this.showMessage('Password required for final decryption', 'info');
+        return;
+      }
+
+      // No more layers
+      this.displayDecodedData(decryptedData, metadata);
+    } catch (error) {
+      console.error('Decode error:', error);
+      this.showMessage('Invalid QR code format', 'error');
     }
   }
 
-  decryptData() {
+  async decryptData() {
     const decodeKey = this.container.querySelector('#decodeKey').value;
 
     if (!decodeKey) {
-      this.showMessage('Please enter decryption key', 'error');
+      this.showMessage('Please enter decryption password', 'error');
       return;
     }
 
     try {
-      const decrypted = CryptoJS.AES.decrypt(this.encryptedData, decodeKey).toString(CryptoJS.enc.Utf8);
-      
-      if (!decrypted) {
-        this.showMessage('Invalid decryption key', 'error');
-        return;
-      }
+      const decrypted = await SecureCrypto.decrypt(this.encryptedData, decodeKey);
 
-      this.displayDecodedData(decrypted);
-      this.showMessage('Data decrypted successfully', 'success');
-      
       const decryptSection = this.container.querySelector('#decryptSection');
       decryptSection.style.display = 'none';
+      this.displayDecodedData(decrypted, this.metadata);
+      this.showMessage('AES decryption successful', 'success');
     } catch (error) {
-      console.error('Decryption error:', error);
-      this.showMessage('Failed to decrypt data. Check your key.', 'error');
+      console.error('AES decryption error:', error);
+      this.showMessage('Failed to decrypt - invalid password', 'error');
     }
   }
 
-  displayDecodedData(data) {
+  displayDecodedData(data, metadata) {
     const decodeResult = this.container.querySelector('#decodeResult');
     const decodedContent = this.container.querySelector('#decodedContent');
 
     decodedContent.textContent = data;
     decodeResult.style.display = 'block';
 
-    // Scroll to result
     decodeResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   copyDecoded() {
     const decodedContent = this.container.querySelector('#decodedContent').textContent;
     navigator.clipboard.writeText(decodedContent)
-      .then(() => {
-        this.showMessage('Copied to clipboard', 'success');
-      })
-      .catch(() => {
-        this.showMessage('Failed to copy', 'error');
-      });
+      .then(() => this.showMessage('Copied to clipboard', 'success'))
+      .catch(() => this.showMessage('Failed to copy', 'error'));
   }
 
   clearDecode() {
@@ -668,14 +751,32 @@ export class AirGapView {
     const decodeResult = this.container.querySelector('#decodeResult');
     const decodeKey = this.container.querySelector('#decodeKey');
 
-    decryptSection.style.display = 'none';
-    decodeResult.style.display = 'none';
-    decodeKey.value = '';
+    if (decryptSection) decryptSection.style.display = 'none';
+    if (decodeResult) decodeResult.style.display = 'none';
+    if (decodeKey) decodeKey.value = '';
     this.encryptedData = null;
+    this.metadata = null;
+  }
+
+  switchMode(mode) {
+    this.currentMode = mode;
+
+    const modeButtons = this.container.querySelectorAll('.airgap-mode-btn');
+    modeButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    const panels = this.container.querySelectorAll('.airgap-panel');
+    panels.forEach(panel => {
+      panel.classList.toggle('active', panel.dataset.panel === mode);
+    });
+
+    if (mode !== 'decode' && this.isScanning) {
+      this.stopCameraScanner();
+    }
   }
 
   showMessage(text, type) {
-    // Import and use your existing message system
     const event = new CustomEvent('show-message', {
       detail: { text, type }
     });

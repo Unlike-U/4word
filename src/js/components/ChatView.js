@@ -1,278 +1,259 @@
-import MessageManager from '../managers/MessageManager.js';
-import { StateManager } from '../managers/StateManager.js';
 import EventBus from '../utils/EventBus.js';
 import { EVENTS } from '../constants/events.js';
-import KeyPairManager from '../services/KeyPairManager.js';
+import MessageManager from '../managers/MessageManager.js';
 import Web3Service from '../services/Web3Service.js';
 import BackendService from '../services/BackendService.js';
+import { StateManager } from '../managers/StateManager.js';
 
 export class ChatView {
   constructor(currentUser) {
     this.container = null;
     this.currentUser = currentUser;
-    this.stateManager = StateManager;
     this.messages = [];
-    this.selectedReceiver = null;
-    this.messageType = 'permanent';
+    this.selectedReceiver = '@everyone';
     this.encryptionKey = '';
-    this.decryptionKey = '';
+    this.messageType = 'temporary';
     this.selectedFile = null;
-    this.showEmojiPicker = false;
-    this.displayedSelfDestructMessages = new Set();
-    this.documentClickHandler = null;
+    this.emojiPickerVisible = false;
+    this.documentClickHandler = null; // Store reference for cleanup
   }
 
   render() {
     this.container = document.createElement('div');
     this.container.className = 'chat-view';
-    
-    const users = this.stateManager.getUsers().filter(u => u.username !== this.currentUser.username);
-    
+
     this.container.innerHTML = `
       <div class="chat-header">
-        <h2><i class="fas fa-comments"></i> Chat</h2>
+        <h2>
+          <i class="fas fa-comments"></i>
+          Messages
+        </h2>
+        
         <div class="chat-controls">
           <div class="receiver-select-container">
-            <label for="receiverSelect">
-              <i class="fas fa-user"></i> To:
+            <label>
+              <i class="fas fa-user-shield"></i>
+              Send to
             </label>
-            <select id="receiverSelect" class="receiver-select">
-              <option value="">Everyone (Public)</option>
-              ${users.map(user => `
-                <option value="${user.username}">${user.displayName || user.username}</option>
+            <select class="receiver-select" id="receiverSelect">
+              <option value="@everyone">@everyone</option>
+              ${this.getOnlineUsers().map(user => `
+                <option value="${user.username}">${user.displayName}</option>
               `).join('')}
             </select>
           </div>
-          
+
           <div class="encryption-key-container">
-            <label for="encryptionKey">
-              <i class="fas fa-key"></i> Extra Encryption:
+            <label>
+              <i class="fas fa-key"></i>
+              Encryption Key
             </label>
-            <input 
-              type="password" 
-              id="encryptionKey" 
-              class="encryption-key-input" 
-              placeholder="Optional extra layer"
-              autocomplete="off"
-            >
-            <button class="toggle-key-btn" id="toggleKeyBtn" title="Show/Hide key">
-              <i class="fas fa-eye"></i>
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <input 
+                type="password" 
+                class="encryption-key-input" 
+                id="encryptionKeyInput" 
+                placeholder="Optional manual encryption key"
+              />
+              <button class="toggle-key-btn" id="toggleKeyBtn">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
           </div>
+        </div>
+
+        <div class="filter-info">
+          <i class="fas fa-info-circle"></i>
+          Messages are filtered by selected recipient
         </div>
       </div>
 
       <div class="chat-messages" id="chatMessages">
         <div class="welcome-message">
           <i class="fas fa-comments fa-3x"></i>
-          <h3>Welcome to 4Word Chat!</h3>
-          <p>Start a conversation by typing a message below.</p>
+          <h3>Welcome to 4Word</h3>
+          <p>Start a secure conversation</p>
+          
           <div class="storage-info">
             <div class="storage-item">
-              <i class="fas fa-save"></i>
-              <strong>Permanent:</strong> Stored on Base blockchain (requires wallet + gas)
+              <i class="fas fa-cube"></i>
+              <div>
+                <strong>Permanent Messages</strong>
+                <p>Stored on blockchain forever</p>
+              </div>
             </div>
             <div class="storage-item">
-              <i class="fas fa-clock"></i>
-              <strong>Temporary:</strong> Stored on backend server (24h expiry)
+              <i class="fas fa-server"></i>
+              <div>
+                <strong>Temporary Messages</strong>
+                <p>Stored on backend server until read</p>
+              </div>
             </div>
             <div class="storage-item">
               <i class="fas fa-bomb"></i>
-              <strong>Self-Destruct:</strong> Stored on backend (deleted after read)
+              <div>
+                <strong>Self-Destruct Messages</strong>
+                <p>Deleted immediately after reading</p>
+              </div>
             </div>
           </div>
-          <p class="filter-info">
-            <i class="fas fa-shield-alt"></i> 
-            Private messages are automatically encrypted with RSA (End-to-End).
-          </p>
         </div>
       </div>
 
       <div class="chat-input-container">
         <div class="message-type-selector">
-          <button class="message-type-btn active" data-type="permanent" title="Permanent - Blockchain storage">
-            <i class="fas fa-save"></i>
-            <span>Permanent</span>
-            <small>⛽ Gas</small>
-          </button>
-          <button class="message-type-btn" data-type="temporary" title="Temporary - 24h backend storage">
+          <button class="message-type-btn" data-type="temporary">
             <i class="fas fa-clock"></i>
             <span>Temporary</span>
-            <small>24h</small>
+            <small>Backend</small>
           </button>
-          <button class="message-type-btn" data-type="self-destruct" title="Self-destruct - Backend storage">
+          <button class="message-type-btn active" data-type="permanent">
+            <i class="fas fa-save"></i>
+            <span>Permanent</span>
+            <small>Blockchain</small>
+          </button>
+          <button class="message-type-btn" data-type="self-destruct">
             <i class="fas fa-bomb"></i>
             <span>Self-Destruct</span>
-            <small>Read once</small>
+            <small>Read Once</small>
           </button>
         </div>
-        
-        <!-- File Preview -->
-        <div class="file-preview-container" id="filePreviewContainer" style="display: none;">
+
+        <div class="file-preview-container" id="filePreview" style="display: none;">
           <div class="file-preview">
             <img id="filePreviewImage" style="display: none;">
-            <div class="file-info" id="fileInfo"></div>
+            <div class="file-info" id="fileInfo">
+              <i class="fas fa-file"></i>
+              <span id="fileName"></span>
+            </div>
             <button class="remove-file-btn" id="removeFileBtn">
               <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
 
-        <!-- Emoji/GIF Picker -->
+        <form class="chat-input-form" id="chatForm">
+          <button type="button" class="attach-btn" id="attachBtn">
+            <i class="fas fa-paperclip"></i>
+          </button>
+          <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/*">
+          
+          <textarea 
+            class="chat-input" 
+            id="messageInput" 
+            placeholder="Type a message..."
+            rows="1"
+          ></textarea>
+          
+          <button type="button" class="emoji-btn" id="emojiBtn">
+            <i class="fas fa-smile"></i>
+          </button>
+          
+          <button type="submit" class="send-btn" id="sendBtn">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+
         <div class="emoji-picker" id="emojiPicker" style="display: none;">
           <div class="emoji-picker-tabs">
             <button class="emoji-tab active" data-tab="emoji">
-              <i class="fas fa-smile"></i> Emoji
+              <i class="fas fa-smile"></i>
+              <span>Emoji</span>
             </button>
             <button class="emoji-tab" data-tab="gif">
-              <i class="fas fa-image"></i> GIF
+              <i class="fas fa-images"></i>
+              <span>GIF</span>
             </button>
           </div>
           
           <div class="emoji-content">
             <div class="emoji-panel active" data-panel="emoji">
               <div class="emoji-grid" id="emojiGrid">
-                ${this.generateEmojiGrid()}
+                ${this.getEmojis().map(emoji => `
+                  <button class="emoji-item" data-emoji="${emoji}">${emoji}</button>
+                `).join('')}
               </div>
             </div>
             
             <div class="emoji-panel" data-panel="gif">
               <div class="gif-search">
-                <input type="text" id="gifSearch" placeholder="Search GIFs..." class="gif-search-input">
-                <button id="gifSearchBtn" class="gif-search-btn">
+                <input type="text" class="gif-search-input" id="gifSearchInput" placeholder="Search GIFs...">
+                <button class="gif-search-btn" id="gifSearchBtn">
                   <i class="fas fa-search"></i>
                 </button>
               </div>
               <div class="gif-grid" id="gifGrid">
-                <p class="gif-placeholder">Search for GIFs above</p>
+                <div class="gif-placeholder">Search for GIFs above</div>
               </div>
             </div>
           </div>
         </div>
-        
-        <form class="chat-input-form" id="chatForm">
-          <button type="button" class="attach-btn" id="attachBtn" title="Attach file">
-            <i class="fas fa-paperclip"></i>
-          </button>
-          <input type="file" id="fileInput" accept="image/*,video/*,.pdf,.doc,.docx" style="display: none;">
-          
-          <button type="button" class="emoji-btn" id="emojiBtn" title="Emoji & GIFs">
-            <i class="fas fa-smile"></i>
-          </button>
-          
-          <input 
-            type="text" 
-            id="messageInput" 
-            class="chat-input" 
-            placeholder="Type a message..."
-            autocomplete="off"
-          >
-          
-          <button type="submit" class="send-btn">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </form>
       </div>
     `;
 
     this.attachEventListeners();
     this.loadMessages();
-    
+
     return this.container;
   }
 
-  generateEmojiGrid() {
-    const emojis = [
-      '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊',
-      '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪',
-      '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏',
-      '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕',
-      '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '🥴', '😵', '🤯', '🤠', '🥳', '😎',
-      '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦',
-      '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩',
-      '😫', '🥱', '😤', '😡', '😠', '🤬', '👍', '👎', '👌', '✌️', '🤞', '🤟',
-      '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👏', '🙌', '👐', '🤲', '🤝',
-      '🙏', '✍️', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🦷',
-      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕',
-      '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️',
-      '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌',
-      '🔥', '💧', '🌊', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '⚽',
-      '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🏒'
-    ];
-
-    return emojis.map(emoji => 
-      `<button class="emoji-item" data-emoji="${emoji}">${emoji}</button>`
-    ).join('');
-  }
-
   attachEventListeners() {
-    const form = this.container.querySelector('#chatForm');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.sendMessage();
-    });
-
+    // Receiver select
     const receiverSelect = this.container.querySelector('#receiverSelect');
     receiverSelect.addEventListener('change', (e) => {
-      this.selectedReceiver = e.target.value || null;
-      this.updatePlaceholder();
+      this.selectedReceiver = e.target.value;
+      this.displayMessages();
     });
 
-    const keyInput = this.container.querySelector('#encryptionKey');
+    // Encryption key toggle
+    const toggleKeyBtn = this.container.querySelector('#toggleKeyBtn');
+    const keyInput = this.container.querySelector('#encryptionKeyInput');
+    
+    toggleKeyBtn.addEventListener('click', () => {
+      const isPassword = keyInput.type === 'password';
+      keyInput.type = isPassword ? 'text' : 'password';
+      toggleKeyBtn.innerHTML = `<i class="fas fa-eye${isPassword ? '-slash' : ''}"></i>`;
+    });
+
     keyInput.addEventListener('input', (e) => {
       this.encryptionKey = e.target.value;
-      this.decryptionKey = e.target.value;
-      this.updatePlaceholder();
-      
-      if (this.messages.length > 0) {
-        this.refreshMessages();
-      }
     });
 
-    const toggleKeyBtn = this.container.querySelector('#toggleKeyBtn');
-    toggleKeyBtn.addEventListener('click', () => {
-      const keyInput = this.container.querySelector('#encryptionKey');
-      const icon = toggleKeyBtn.querySelector('i');
-      
-      if (keyInput.type === 'password') {
-        keyInput.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-      } else {
-        keyInput.type = 'password';
-        icon.className = 'fas fa-eye';
-      }
-    });
-
+    // Message type selector
     const typeButtons = this.container.querySelectorAll('.message-type-btn');
     typeButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const type = e.currentTarget.dataset.type;
-        this.setMessageType(type);
+        typeButtons.forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.messageType = e.currentTarget.dataset.type;
       });
     });
 
+    // File attachment
     const attachBtn = this.container.querySelector('#attachBtn');
     const fileInput = this.container.querySelector('#fileInput');
     
     attachBtn.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        this.handleFileSelect(e.target.files[0]);
-      }
-    });
+    fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
 
     const removeFileBtn = this.container.querySelector('#removeFileBtn');
     removeFileBtn.addEventListener('click', () => this.removeFile());
 
+    // Emoji picker
     const emojiBtn = this.container.querySelector('#emojiBtn');
     emojiBtn.addEventListener('click', () => this.toggleEmojiPicker());
 
     const emojiTabs = this.container.querySelectorAll('.emoji-tab');
     emojiTabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
-        const tabType = e.currentTarget.dataset.tab;
-        this.switchEmojiTab(tabType);
+        emojiTabs.forEach(t => t.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        
+        const panels = this.container.querySelectorAll('.emoji-panel');
+        panels.forEach(p => p.classList.remove('active'));
+        
+        const targetPanel = this.container.querySelector(`.emoji-panel[data-panel="${e.currentTarget.dataset.tab}"]`);
+        if (targetPanel) targetPanel.classList.add('active');
       });
     });
 
@@ -284,636 +265,360 @@ export class ChatView {
       });
     });
 
-    const gifSearchBtn = this.container.querySelector('#gifSearchBtn');
-    const gifSearchInput = this.container.querySelector('#gifSearch');
-    
-    gifSearchBtn.addEventListener('click', () => {
-      this.searchGifs(gifSearchInput.value);
+    // Form submit
+    const chatForm = this.container.querySelector('#chatForm');
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.sendMessage();
     });
 
-    gifSearchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.searchGifs(gifSearchInput.value);
-      }
+    // Auto-resize textarea
+    const messageInput = this.container.querySelector('#messageInput');
+    messageInput.addEventListener('input', (e) => {
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
     });
 
+    // Close emoji picker when clicking outside - FIXED
     this.documentClickHandler = (e) => {
-      if (!this.container) return;
+      // Safety check: ensure container exists
+      if (!this.container) {
+        return;
+      }
       
       const emojiPicker = this.container.querySelector('#emojiPicker');
       const emojiBtn = this.container.querySelector('#emojiBtn');
       
-      if (emojiPicker && emojiBtn && this.showEmojiPicker && 
-          !emojiPicker.contains(e.target) && 
-          !emojiBtn.contains(e.target)) {
-        this.toggleEmojiPicker();
+      if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiBtn && !emojiBtn.contains(e.target)) {
+        emojiPicker.style.display = 'none';
+        this.emojiPickerVisible = false;
       }
     };
     
     document.addEventListener('click', this.documentClickHandler);
   }
 
-  handleFileSelect(file) {
+  getOnlineUsers() {
+    return StateManager.getUsers();
+  }
+
+  getEmojis() {
+    return ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸'];
+  }
+
+  toggleEmojiPicker() {
+    const emojiPicker = this.container.querySelector('#emojiPicker');
+    this.emojiPickerVisible = !this.emojiPickerVisible;
+    emojiPicker.style.display = this.emojiPickerVisible ? 'block' : 'none';
+  }
+
+  insertEmoji(emoji) {
+    const messageInput = this.container.querySelector('#messageInput');
+    const start = messageInput.selectionStart;
+    const end = messageInput.selectionEnd;
+    const text = messageInput.value;
+    
+    messageInput.value = text.substring(0, start) + emoji + text.substring(end);
+    messageInput.selectionStart = messageInput.selectionEnd = start + emoji.length;
+    messageInput.focus();
+  }
+
+  handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
     this.selectedFile = file;
     
-    const previewContainer = this.container.querySelector('#filePreviewContainer');
-    const previewImage = this.container.querySelector('#filePreviewImage');
+    const filePreview = this.container.querySelector('#filePreview');
+    const filePreviewImage = this.container.querySelector('#filePreviewImage');
     const fileInfo = this.container.querySelector('#fileInfo');
-    
-    previewContainer.style.display = 'block';
-    
+    const fileName = this.container.querySelector('#fileName');
+
+    filePreview.style.display = 'block';
+
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        previewImage.src = e.target.result;
-        previewImage.style.display = 'block';
+        filePreviewImage.src = e.target.result;
+        filePreviewImage.style.display = 'block';
+        fileInfo.style.display = 'none';
       };
       reader.readAsDataURL(file);
-      fileInfo.innerHTML = `<i class="fas fa-image"></i> ${file.name} (${this.formatFileSize(file.size)})`;
     } else {
-      previewImage.style.display = 'none';
-      const icon = this.getFileIcon(file.type);
-      fileInfo.innerHTML = `<i class="fas ${icon}"></i> ${file.name} (${this.formatFileSize(file.size)})`;
+      filePreviewImage.style.display = 'none';
+      fileInfo.style.display = 'flex';
+      fileName.textContent = file.name;
     }
   }
 
   removeFile() {
     this.selectedFile = null;
-    const previewContainer = this.container.querySelector('#filePreviewContainer');
+    const filePreview = this.container.querySelector('#filePreview');
     const fileInput = this.container.querySelector('#fileInput');
-    previewContainer.style.display = 'none';
+    
+    filePreview.style.display = 'none';
     fileInput.value = '';
   }
 
-  toggleEmojiPicker() {
-    this.showEmojiPicker = !this.showEmojiPicker;
-    const emojiPicker = this.container.querySelector('#emojiPicker');
-    if (emojiPicker) {
-      emojiPicker.style.display = this.showEmojiPicker ? 'block' : 'none';
-    }
-  }
-
-  switchEmojiTab(tabType) {
-    const tabs = this.container.querySelectorAll('.emoji-tab');
-    const panels = this.container.querySelectorAll('.emoji-panel');
-    
-    tabs.forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.tab === tabType);
-    });
-    
-    panels.forEach(panel => {
-      panel.classList.toggle('active', panel.dataset.panel === tabType);
-    });
-  }
-
-  insertEmoji(emoji) {
-    const input = this.container.querySelector('#messageInput');
-    const cursorPos = input.selectionStart;
-    const textBefore = input.value.substring(0, cursorPos);
-    const textAfter = input.value.substring(cursorPos);
-    
-    input.value = textBefore + emoji + textAfter;
-    input.focus();
-    input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
-  }
-
-  async searchGifs(query) {
-    if (!query.trim()) {
-      MessageManager.showWarning('Please enter a search term');
-      return;
-    }
-
-    const gifGrid = this.container.querySelector('#gifGrid');
-    gifGrid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
-
-    const apiKey = 'AIzaSyAXwQU_OKMq0yGwJdXwBdmNLqV_L_zNJLg';
-    const limit = 20;
-    const url = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${apiKey}&limit=${limit}&media_filter=gif`;
-
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.results && data.results.length > 0) {
-        gifGrid.innerHTML = data.results.map(gif => `
-          <div class="gif-item" data-gif-url="${gif.media_formats.gif.url}">
-            <img src="${gif.media_formats.tinygif.url}" alt="${gif.content_description}">
-          </div>
-        `).join('');
-        
-        const gifItems = gifGrid.querySelectorAll('.gif-item');
-        gifItems.forEach(item => {
-          item.addEventListener('click', () => {
-            this.insertGif(item.dataset.gifUrl);
-          });
-        });
-      } else {
-        gifGrid.innerHTML = '<p class="gif-placeholder">No GIFs found</p>';
-      }
-    } catch (error) {
-      console.error('GIF search error:', error);
-      gifGrid.innerHTML = '<p class="gif-placeholder">Error loading GIFs. Try again.</p>';
-    }
-  }
-
-  insertGif(gifUrl) {
-    const input = this.container.querySelector('#messageInput');
-    input.value = (input.value + ' ' + gifUrl).trim();
-    this.toggleEmojiPicker();
-    MessageManager.showSuccess('GIF added! Send your message.');
-  }
-
-  getFileIcon(fileType) {
-    if (fileType.startsWith('image/')) return 'fa-image';
-    if (fileType.startsWith('video/')) return 'fa-video';
-    if (fileType.includes('pdf')) return 'fa-file-pdf';
-    if (fileType.includes('word') || fileType.includes('document')) return 'fa-file-word';
-    return 'fa-file';
-  }
-
-  formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  }
-
-  setMessageType(type) {
-    this.messageType = type;
-    
-    const buttons = this.container.querySelectorAll('.message-type-btn');
-    buttons.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.type === type);
-    });
-
-    this.updatePlaceholder();
-  }
-
-  updatePlaceholder() {
-    const input = this.container.querySelector('#messageInput');
-    let placeholder = 'Type a message';
-    
-    if (this.selectedReceiver) {
-      const users = this.stateManager.getUsers();
-      const receiver = users.find(u => u.username === this.selectedReceiver);
-      const receiverName = receiver ? (receiver.displayName || receiver.username) : this.selectedReceiver;
-      placeholder = `Message to ${receiverName}`;
-    }
-
-    const typeLabels = {
-      permanent: '(blockchain)',
-      temporary: '(24h backend)',
-      'self-destruct': '(read once)'
-    };
-
-    let encryptionLabel = '';
-    if (this.selectedReceiver) {
-      encryptionLabel = ' 🔐';
-    }
-    if (this.encryptionKey) {
-      encryptionLabel += ' 🔑';
-    }
-
-    input.placeholder = `${placeholder} ${typeLabels[this.messageType]}${encryptionLabel}...`;
-  }
-
-  encryptMessage(text, key) {
-    if (!key || key.length === 0) return text;
-    
-    try {
-      let encrypted = '';
-      for (let i = 0; i < text.length; i++) {
-        const textChar = text.charCodeAt(i);
-        const keyChar = key.charCodeAt(i % key.length);
-        encrypted += String.fromCharCode(textChar ^ keyChar);
-      }
-      return btoa(encrypted);
-    } catch (error) {
-      console.error('Encryption error:', error);
-      return text;
-    }
-  }
-
-  decryptMessage(encryptedText, key) {
-    if (!key || key.length === 0) return null;
-    
-    try {
-      const encrypted = atob(encryptedText);
-      let decrypted = '';
-      for (let i = 0; i < encrypted.length; i++) {
-        const encChar = encrypted.charCodeAt(i);
-        const keyChar = key.charCodeAt(i % key.length);
-        decrypted += String.fromCharCode(encChar ^ keyChar);
-      }
-      return decrypted;
-    } catch (error) {
-      console.error('Decryption error:', error);
-      return null;
-    }
-  }
-
   async sendMessage() {
-    const input = this.container.querySelector('#messageInput');
-    const message = input.value.trim();
+    const messageInput = this.container.querySelector('#messageInput');
+    const message = messageInput.value.trim();
 
     if (!message && !this.selectedFile) {
-      MessageManager.showWarning('Please enter a message or attach a file');
+      this.showMessage('Please enter a message or select a file', 'error');
       return;
     }
-
-    // Check wallet connection for permanent messages
-    if (this.messageType === 'permanent' && !Web3Service.isConnected) {
-      MessageManager.showError('Please connect your wallet to send permanent messages');
-      return;
-    }
-
-    const originalMessage = message;
-    let finalMessageText = message;
-    let rsaEncrypted = false;
-
-    // Layer 1: RSA Encryption (if private message)
-    if (this.selectedReceiver && KeyPairManager.isSupported) {
-      try {
-        const recipientPublicKey = this.stateManager.getPublicKey(this.selectedReceiver);
-        
-        if (recipientPublicKey) {
-          const importedPublicKey = await KeyPairManager.importPublicKey(recipientPublicKey);
-          finalMessageText = await KeyPairManager.encryptMessage(message, importedPublicKey);
-          rsaEncrypted = true;
-          console.log(`🔐 Message RSA encrypted for ${this.selectedReceiver}`);
-        }
-      } catch (error) {
-        console.error('RSA encryption error:', error);
-      }
-    }
-
-    // Layer 2: Manual Encryption (optional additional layer)
-    let manuallyEncrypted = false;
-    if (this.encryptionKey) {
-      finalMessageText = this.encryptMessage(finalMessageText, this.encryptionKey);
-      manuallyEncrypted = true;
-      console.log(`🔑 Additional manual encryption applied`);
-    }
-
-    let fileData = null;
-    if (this.selectedFile) {
-      fileData = {
-        name: this.selectedFile.name,
-        type: this.selectedFile.type,
-        size: this.selectedFile.size,
-        url: URL.createObjectURL(this.selectedFile)
-      };
-    }
-
-    const messageObj = {
-      text: finalMessageText,
-      rsaEncrypted: rsaEncrypted,
-      manuallyEncrypted: manuallyEncrypted,
-      sender: this.currentUser.username,
-      senderName: this.currentUser.displayName,
-      receiver: this.selectedReceiver,
-      messageType: this.messageType,
-      file: fileData
-    };
 
     try {
-      // Route to appropriate storage
+      const messageData = {
+        id: this.generateMessageId(),
+        sender: this.currentUser.username,
+        senderName: this.currentUser.displayName,
+        receiver: this.selectedReceiver,
+        content: message,
+        timestamp: Date.now(),
+        type: this.messageType,
+        encrypted: !!this.encryptionKey,
+        encryptionKey: this.encryptionKey,
+        file: this.selectedFile ? {
+          name: this.selectedFile.name,
+          type: this.selectedFile.type,
+          size: this.selectedFile.size,
+        } : null,
+      };
+
+      // Store message based on type
       if (this.messageType === 'permanent') {
-        await this.storeOnBlockchain(messageObj, originalMessage);
-      } else {
-        await this.storeOnBackend(messageObj, originalMessage);
-      }
-
-      input.value = '';
-      this.removeFile();
-
-    } catch (error) {
-      console.error('Send message error:', error);
-      MessageManager.showError('Failed to send message: ' + error.message);
-    }
-  }
-
-  async storeOnBlockchain(messageObj, originalMessage) {
-    try {
-      const result = await Web3Service.storeMessage({
-        senderUsername: messageObj.sender,
-        receiver: messageObj.receiver || '',
-        text: messageObj.text,
-        rsaEncrypted: messageObj.rsaEncrypted,
-        manuallyEncrypted: messageObj.manuallyEncrypted
-      });
-
-      // Add to local messages for immediate display
-      const displayObj = {
-        ...messageObj,
-        id: result.messageId,
-        timestamp: new Date().toISOString(),
-        originalText: originalMessage,
-        isOwnMessage: true,
-        source: 'blockchain',
-        txHash: result.txHash
-      };
-
-      this.messages.push(displayObj);
-      this.displayMessage(displayObj);
-
-      EventBus.emit(EVENTS.CHAT.MESSAGE_SENT, displayObj);
-
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async storeOnBackend(messageObj, originalMessage) {
-    try {
-      const result = await BackendService.storeMessage({
-        ...messageObj,
-        timestamp: new Date().toISOString(),
-        read: false
-      });
-
-      // Add to local messages for immediate display
-      const displayObj = {
-        ...messageObj,
-        id: result.id,
-        timestamp: result.timestamp,
-        expiresAt: result.expiresAt,
-        originalText: originalMessage,
-        isOwnMessage: true,
-        source: 'backend'
-      };
-
-      this.messages.push(displayObj);
-      this.displayMessage(displayObj);
-
-      const typeLabel = this.messageType === 'temporary' ? '(24h)' : '(self-destruct)';
-      MessageManager.showSuccess(`Message sent ${typeLabel}`);
-
-      EventBus.emit(EVENTS.CHAT.MESSAGE_SENT, displayObj);
-
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async displayMessage(message) {
-    const messagesContainer = this.container.querySelector('#chatMessages');
-    
-    const welcome = messagesContainer.querySelector('.welcome-message');
-    if (welcome) {
-      welcome.remove();
-    }
-
-    const messageEl = document.createElement('div');
-    const isOwnMessage = message.sender === this.currentUser.username;
-    const isPrivate = message.receiver && message.receiver !== '';
-    
-    messageEl.className = `chat-message ${isOwnMessage ? 'own-message' : ''}`;
-    messageEl.dataset.messageId = message.id;
-    messageEl.dataset.source = message.source || 'unknown';
-    
-    const time = new Date(message.timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-
-    const typeIcons = {
-      permanent: '<i class="fas fa-save" title="Permanent - Blockchain"></i>',
-      temporary: '<i class="fas fa-clock" title="Temporary - 24h"></i>',
-      'self-destruct': '<i class="fas fa-bomb" title="Self-destruct"></i>'
-    };
-
-    const typeIcon = typeIcons[message.messageType] || '';
-
-    let receiverInfo = '';
-    if (isPrivate) {
-      const users = this.stateManager.getUsers();
-      const receiver = users.find(u => u.username === message.receiver);
-      const receiverName = receiver ? (receiver.displayName || receiver.username) : message.receiver;
-      receiverInfo = `<span class="message-receiver"><i class="fas fa-lock"></i> Private to ${receiverName}</span>`;
-    }
-
-    let displayText = '';
-    let messageClass = '';
-
-    displayText = message.text;
-
-    if (message.originalText) {
-      displayText = message.originalText;
-    } else {
-      // Layer 1: RSA Decryption
-      if (message.rsaEncrypted && !isOwnMessage && KeyPairManager.isSupported) {
-        try {
-          const cachedKeyPair = KeyPairManager.getCachedKeyPair(this.currentUser.username);
-          
-          if (cachedKeyPair && cachedKeyPair.privateKey) {
-            displayText = await KeyPairManager.decryptMessage(displayText, cachedKeyPair.privateKey);
-            messageClass = 'rsa-decrypted';
-            console.log('🔓 RSA decrypted');
-          } else {
-            displayText = '🔒 [RSA Encrypted - Keys not loaded]';
-            messageClass = 'encrypted-locked';
-          }
-        } catch (error) {
-          console.error('RSA decryption failed:', error);
-          displayText = '🔒 [RSA Encrypted - Decryption failed]';
-          messageClass = 'encrypted-locked';
-        }
-      }
-
-      // Layer 2: Manual Decryption
-      if (message.manuallyEncrypted && messageClass !== 'encrypted-locked') {
-        if (this.decryptionKey) {
-          const decrypted = this.decryptMessage(displayText, this.decryptionKey);
-          if (decrypted) {
-            displayText = decrypted;
-            messageClass = 'decrypted-message';
-            console.log('🔑 Manual decryption applied');
-          } else {
-            displayText = '🔑 [Manually Encrypted - Wrong Key]';
-            messageClass = 'encrypted-locked';
-          }
+        // Store on blockchain
+        if (Web3Service.isConnected) {
+          await this.sendToBlockchain(messageData);
         } else {
-          displayText = '🔑 [Manually Encrypted - Enter key to decrypt]';
-          messageClass = 'encrypted-locked';
+          this.showMessage('Connect wallet to send permanent messages', 'warning');
+          // Fallback to localStorage
+          this.saveToLocalStorage(messageData);
         }
+      } else if (this.messageType === 'temporary') {
+        // Store on backend
+        await this.sendToBackend(messageData);
+      } else if (this.messageType === 'self-destruct') {
+        // Store on backend with self-destruct flag
+        await this.sendSelfDestructToBackend(messageData);
       }
-    }
 
-    const gifUrlPattern = /https?:\/\/.*\.gif/i;
-    let contentHtml = '';
-    
-    if (gifUrlPattern.test(displayText)) {
-      const gifUrl = displayText.match(gifUrlPattern)[0];
-      const textWithoutGif = displayText.replace(gifUrl, '').trim();
-      contentHtml = `
-        ${textWithoutGif ? `<p>${this.escapeHtml(textWithoutGif)}</p>` : ''}
-        <img src="${gifUrl}" class="message-gif" alt="GIF">
-      `;
-    } else {
-      contentHtml = this.escapeHtml(displayText);
-    }
+      // Add to local messages
+      this.messages.push(messageData);
+      this.displayMessages();
 
-    let fileHtml = '';
-    if (message.file) {
-      if (message.file.type.startsWith('image/')) {
-        fileHtml = `
-          <div class="message-attachment">
-            <img src="${message.file.url}" alt="${message.file.name}" class="message-image">
-          </div>
-        `;
-      } else {
-        const icon = this.getFileIcon(message.file.type);
-        fileHtml = `
-          <div class="message-attachment file-attachment">
-            <i class="fas ${icon}"></i>
-            <div class="file-attachment-info">
-              <div class="file-name">${message.file.name}</div>
-              <div class="file-size">${this.formatFileSize(message.file.size)}</div>
-            </div>
-            <a href="${message.file.url}" download="${message.file.name}" class="file-download">
-              <i class="fas fa-download"></i>
-            </a>
-          </div>
-        `;
-      }
-    }
-
-    let encryptionIndicators = '';
-    if (message.rsaEncrypted) {
-      encryptionIndicators += '<i class="fas fa-shield-alt" title="RSA Encrypted"></i> ';
-    }
-    if (message.manuallyEncrypted) {
-      encryptionIndicators += '<i class="fas fa-key" title="Manually Encrypted"></i> ';
-    }
-
-    // Storage indicator
-    const storageIndicator = message.source === 'blockchain' 
-      ? '<span class="storage-badge blockchain"><i class="fas fa-cube"></i> On-chain</span>'
-      : '<span class="storage-badge backend"><i class="fas fa-server"></i> Backend</span>';
-
-    messageEl.innerHTML = `
-      <div class="message-header">
-        <div class="message-sender-info">
-          <span class="message-sender">${message.senderName || message.sender}</span>
-          ${receiverInfo}
-        </div>
-        <div class="message-meta">
-          ${storageIndicator}
-          ${encryptionIndicators}
-          ${typeIcon}
-          <span class="message-time">${time}</span>
-        </div>
-      </div>
-      <div class="message-content ${message.messageType} ${messageClass}">
-        ${contentHtml}
-      </div>
-      ${fileHtml}
-    `;
-
-    messagesContainer.appendChild(messageEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    // Handle self-destruct
-    if (message.messageType === 'self-destruct' && !isOwnMessage && message.source === 'backend') {
-      this.displayedSelfDestructMessages.add(message.id);
+      // Clear input
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      this.removeFile();
       
-      // Mark as read on backend
-      try {
-        await BackendService.markAsRead(message.id, this.currentUser.username);
-      } catch (error) {
-        console.error('Failed to mark as read:', error);
-      }
-      
-      const countdownTime = 5000;
-      const destructTime = 2000;
-      
-      setTimeout(() => {
-        messageEl.classList.add('self-destructing');
-        
-        setTimeout(() => {
-          messageEl.remove();
-          this.messages = this.messages.filter(m => m.id !== message.id);
-          
-          console.log(`Self-destruct message ${message.id} destroyed`);
-        }, destructTime);
-      }, countdownTime);
+      this.showMessage('Message sent!', 'success');
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      this.showMessage('Failed to send message', 'error');
     }
   }
 
-  refreshMessages() {
-    const messagesContainer = this.container.querySelector('#chatMessages');
-    messagesContainer.innerHTML = '';
-    
-    if (this.messages.length === 0) {
-      messagesContainer.innerHTML = `
-        <div class="welcome-message">
-          <i class="fas fa-comments fa-3x"></i>
-          <h3>Welcome to 4Word Chat!</h3>
-          <p>Start a conversation by typing a message below.</p>
-          <div class="storage-info">
-            <div class="storage-item">
-              <i class="fas fa-save"></i>
-              <strong>Permanent:</strong> Stored on Base blockchain
-            </div>
-            <div class="storage-item">
-              <i class="fas fa-clock"></i>
-              <strong>Temporary:</strong> Stored on backend (24h)
-            </div>
-            <div class="storage-item">
-              <i class="fas fa-bomb"></i>
-              <strong>Self-Destruct:</strong> Deleted after read
-            </div>
-          </div>
-        </div>
-      `;
-      return;
+  async sendToBlockchain(messageData) {
+    try {
+      await Web3Service.sendMessage(messageData);
+      this.showMessage('Message stored on blockchain', 'success');
+    } catch (error) {
+      console.error('Blockchain error:', error);
+      // Fallback to localStorage
+      this.saveToLocalStorage(messageData);
+      this.showMessage('Message saved locally (blockchain unavailable)', 'warning');
     }
+  }
 
-    const filteredMessages = this.messages.filter(msg => {
-      if (!msg.receiver || msg.receiver === '') return true;
-      if (msg.sender === this.currentUser.username) return true;
-      if (msg.receiver === this.currentUser.username) return true;
-      return false;
-    });
+  async sendToBackend(messageData) {
+    try {
+      await BackendService.sendTemporaryMessage(messageData);
+      this.showMessage('Temporary message sent', 'success');
+    } catch (error) {
+      console.error('Backend error:', error);
+      // Fallback to localStorage
+      this.saveToLocalStorage(messageData);
+      this.showMessage('Message saved locally (backend unavailable)', 'warning');
+    }
+  }
 
-    filteredMessages.forEach(msg => this.displayMessage(msg));
+  async sendSelfDestructToBackend(messageData) {
+    try {
+      await BackendService.sendSelfDestructMessage(messageData);
+      this.showMessage('Self-destruct message sent', 'success');
+    } catch (error) {
+      console.error('Backend error:', error);
+      // Fallback to localStorage
+      this.saveToLocalStorage(messageData);
+      this.showMessage('Message saved locally (backend unavailable)', 'warning');
+    }
+  }
+
+  saveToLocalStorage(messageData) {
+    const messages = this.loadLocalMessages();
+    messages.push(messageData);
+    localStorage.setItem('4word_messages', JSON.stringify(messages));
+  }
+
+  loadLocalMessages() {
+    try {
+      const stored = localStorage.getItem('4word_messages');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading local messages:', error);
+      return [];
+    }
   }
 
   async loadMessages() {
     console.log('Loading messages from all sources...');
     
-    // Load from blockchain (permanent messages)
-    if (Web3Service.isConnected) {
-      try {
-        const blockchainMessages = await Web3Service.getMessages(this.currentUser.username);
-        this.messages.push(...blockchainMessages);
-        console.log(`Loaded ${blockchainMessages.length} messages from blockchain`);
-      } catch (error) {
-        console.error('Failed to load blockchain messages:', error);
-      }
-    }
-
-    // Load from backend (temporary & self-destruct)
     try {
-      const backendMessages = await BackendService.getMessages(this.currentUser.username);
-      this.messages.push(...backendMessages.map(msg => ({
-        ...msg,
-        source: 'backend'
-      })));
-      console.log(`Loaded ${backendMessages.length} messages from backend`);
+      let allMessages = [];
+
+      // Load from backend
+      try {
+        const backendResponse = await BackendService.getMessages(this.currentUser.username);
+        const backendMessages = backendResponse.messages || [];
+        allMessages = allMessages.concat(backendMessages.map(msg => ({
+          ...msg,
+          source: 'backend'
+        })));
+      } catch (error) {
+        console.warn('Failed to load backend messages:', error);
+      }
+
+      // Load from blockchain
+      try {
+        if (Web3Service.isConnected) {
+          const blockchainMessages = await Web3Service.getMessages(this.currentUser.username);
+          allMessages = allMessages.concat(blockchainMessages.map(msg => ({
+            ...msg,
+            source: 'blockchain'
+          })));
+        }
+      } catch (error) {
+        console.warn('Failed to load blockchain messages:', error);
+      }
+
+      // Load from localStorage
+      const localMessages = this.loadLocalMessages();
+      allMessages = allMessages.concat(localMessages);
+
+      // Sort by timestamp
+      allMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+      this.messages = allMessages;
+      this.displayMessages();
+
     } catch (error) {
-      console.error('Failed to load backend messages:', error);
+      console.error('Error loading messages:', error);
+      this.showMessage('Failed to load messages', 'error');
+    }
+  }
+
+  displayMessages() {
+    const chatMessages = this.container.querySelector('#chatMessages');
+    
+    // Filter messages based on selected receiver
+    const filteredMessages = this.messages.filter(msg => {
+      if (this.selectedReceiver === '@everyone') {
+        return msg.receiver === '@everyone' || msg.sender === this.currentUser.username;
+      } else {
+        return (msg.sender === this.currentUser.username && msg.receiver === this.selectedReceiver) ||
+               (msg.sender === this.selectedReceiver && msg.receiver === this.currentUser.username) ||
+               (msg.receiver === '@everyone');
+      }
+    });
+
+    if (filteredMessages.length === 0) {
+      chatMessages.innerHTML = `
+        <div class="welcome-message">
+          <i class="fas fa-comments fa-3x"></i>
+          <h3>No messages yet</h3>
+          <p>Start a conversation by sending a message</p>
+        </div>
+      `;
+      return;
     }
 
-    // Sort by timestamp
-    this.messages.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    chatMessages.innerHTML = filteredMessages.map(msg => this.renderMessage(msg)).join('');
 
-    // Display all messages
-    if (this.messages.length > 0) {
-      this.messages.forEach(msg => this.displayMessage(msg));
-    }
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  renderMessage(msg) {
+    const isOwnMessage = msg.sender === this.currentUser.username;
+    const messageClass = isOwnMessage ? 'chat-message own-message' : 'chat-message';
+    const typeIcon = this.getTypeIcon(msg.type);
+    const sourceIcon = this.getSourceIcon(msg.source);
+
+    return `
+      <div class="${messageClass}">
+        <div class="message-header">
+          <div class="message-sender-info">
+            <span class="message-sender">${msg.senderName || msg.sender}</span>
+            ${msg.receiver !== '@everyone' ? `
+              <span class="message-receiver">
+                <i class="fas fa-arrow-right"></i>
+                ${msg.receiver}
+              </span>
+            ` : ''}
+          </div>
+          <div class="message-meta">
+            ${typeIcon}
+            ${sourceIcon}
+            <span class="message-time">${this.formatTime(msg.timestamp)}</span>
+          </div>
+        </div>
+        <div class="message-content ${msg.type}">
+          <p>${this.escapeHtml(msg.content)}</p>
+          ${msg.file ? this.renderAttachment(msg.file) : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  getTypeIcon(type) {
+    const icons = {
+      'permanent': '<i class="fas fa-save" title="Permanent"></i>',
+      'temporary': '<i class="fas fa-clock" title="Temporary"></i>',
+      'self-destruct': '<i class="fas fa-bomb" title="Self-Destruct"></i>',
+    };
+    return icons[type] || '';
+  }
+
+  getSourceIcon(source) {
+    const icons = {
+      'blockchain': '<span class="storage-badge blockchain"><i class="fas fa-cube"></i></span>',
+      'backend': '<span class="storage-badge backend"><i class="fas fa-server"></i></span>',
+    };
+    return icons[source] || '';
+  }
+
+  renderAttachment(file) {
+    return `
+      <div class="message-attachment">
+        <i class="fas fa-file"></i>
+        <span>${this.escapeHtml(file.name)}</span>
+      </div>
+    `;
+  }
+
+  formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
   escapeHtml(text) {
@@ -922,12 +627,25 @@ export class ChatView {
     return div.innerHTML;
   }
 
+  generateMessageId() {
+    return 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  showMessage(text, type) {
+    const event = new CustomEvent('show-message', {
+      detail: { text, type }
+    });
+    window.dispatchEvent(event);
+  }
+
   destroy() {
+    // Remove document event listener to prevent memory leaks and errors
     if (this.documentClickHandler) {
       document.removeEventListener('click', this.documentClickHandler);
       this.documentClickHandler = null;
     }
     
+    // Remove container
     if (this.container) {
       this.container.remove();
       this.container = null;

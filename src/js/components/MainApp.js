@@ -4,10 +4,10 @@ import MessageManager from '../managers/MessageManager.js';
 import { StateManager } from '../managers/StateManager.js';
 import { ChatView } from './ChatView.js';
 import { SteganographyView } from './SteganographyView.js';
+import { AirGapView } from './AirGapView.js';
 import { WalletConnector } from './WalletConnector.js';
 import Web3Service from '../services/Web3Service.js';
 import BackendService from '../services/BackendService.js';
-import { AirGapView } from './AirGapView.js';
 
 export class MainApp {
   constructor(currentUser) {
@@ -16,12 +16,12 @@ export class MainApp {
     this.currentView = 'chat';
     this.chatView = null;
     this.stegoView = null;
+    this.airgapView = null;
     this.walletConnector = null;
     this.stateManager = StateManager;
-    this.airgapView = null;
   }
 
-  render() {
+  async render() {
     this.container = document.createElement('div');
     this.container.className = 'main-app';
     
@@ -82,11 +82,37 @@ export class MainApp {
     `;
 
     this.attachEventListeners();
-    this.initializeWalletConnector();
-    this.checkBackendConnection();
-    this.loadView('chat');
+    await this.initializeApp();
     
     return this.container;
+  }
+
+  async initializeApp() {
+    // Initialize wallet connector
+    this.initializeWalletConnector();
+    
+    // Initialize state manager
+    try {
+      await StateManager.initialize(this.currentUser);
+    } catch (error) {
+      console.warn('State manager initialization failed:', error);
+    }
+
+    // Set user online on backend
+    try {
+      await BackendService.setUserOnline(this.currentUser.username, true);
+      console.log('User set to online on backend');
+    } catch (error) {
+      console.warn('Could not set user online status on backend:', error);
+    }
+
+    // Check backend connection
+    await this.checkBackendConnection();
+    
+    // Load initial view
+    this.loadView('chat').catch(error => {
+      console.error('Error loading initial view:', error);
+    });
   }
 
   attachEventListeners() {
@@ -121,6 +147,8 @@ export class MainApp {
     
     if (!isConnected) {
       console.warn('Backend server not available - temporary messages disabled');
+    } else {
+      console.log('Backend server connected successfully');
     }
   }
 
@@ -133,11 +161,13 @@ export class MainApp {
       item.classList.toggle('active', item.dataset.view === view);
     });
 
-    // Load view
-    this.loadView(view);
+    // Load view (handle async)
+    this.loadView(view).catch(error => {
+      console.error('Error loading view:', error);
+    });
   }
 
-  loadView(view) {
+  async loadView(view) {
     const contentContainer = this.container.querySelector('#appContent');
     
     // Clear existing view
@@ -148,6 +178,10 @@ export class MainApp {
     if (this.stegoView) {
       this.stegoView.destroy?.();
       this.stegoView = null;
+    }
+    if (this.airgapView) {
+      this.airgapView.destroy?.();
+      this.airgapView = null;
     }
 
     contentContainer.innerHTML = '';
@@ -164,8 +198,8 @@ export class MainApp {
         break;
       
       case 'airgap':
-        this.airgapView = new AirGapView();
-        contentContainer.appendChild(this.airgapView.render());
+        this.airgapView = new AirGapView(this.currentUser);
+        contentContainer.appendChild(await this.airgapView.render());
         break;
       
       case 'terminal':
@@ -182,6 +216,7 @@ export class MainApp {
               <div class="terminal-line output">  decrypt [message]  - Decrypt a message</div>
               <div class="terminal-line output">  keygen            - Generate new key pair</div>
               <div class="terminal-line output">  wallet            - Show wallet info</div>
+              <div class="terminal-line output">  whoami            - Show current user</div>
               <div class="terminal-line output">  clear             - Clear terminal</div>
               <div class="terminal-line output">  help              - Show this help message</div>
               <div class="terminal-line output"></div>
@@ -313,6 +348,7 @@ export class MainApp {
         addOutput('  decrypt [message]  - Decrypt a message');
         addOutput('  keygen            - Generate new key pair');
         addOutput('  wallet            - Show wallet info');
+        addOutput('  whoami            - Show current user');
         addOutput('  clear             - Clear terminal');
         addOutput('  help              - Show this help message');
         break;
@@ -367,8 +403,8 @@ export class MainApp {
       case 'whoami':
         addOutput('User: ' + this.currentUser.displayName, 'output');
         addOutput('Username: ' + this.currentUser.username, 'output');
+        addOutput('User ID: ' + this.currentUser.id, 'output');
         break;
-
 
       case '':
         // Empty command, do nothing
@@ -387,10 +423,19 @@ export class MainApp {
 
   handleLogout() {
     if (confirm('Are you sure you want to logout?')) {
+      // Set user offline on backend
+      if (this.currentUser) {
+        BackendService.setUserOnline(this.currentUser.username, false)
+          .catch(err => console.warn('Could not set offline status:', err));
+      }
+
       // Disconnect wallet if connected
       if (Web3Service.isConnected) {
         Web3Service.disconnect();
       }
+
+      // Clear state
+      StateManager.clear();
       
       EventBus.emit(EVENTS.USER.LOGOUT);
     }
@@ -403,17 +448,15 @@ export class MainApp {
     if (this.stegoView) {
       this.stegoView.destroy?.();
     }
-    if (this.walletConnector) {
-      this.walletConnector.destroy?.();
-    }
     if (this.airgapView) {
       this.airgapView.destroy?.();
+    }
+    if (this.walletConnector) {
+      this.walletConnector.destroy?.();
     }
     if (this.container) {
       this.container.remove();
       this.container = null;
     }
-
-    
   }
 }

@@ -21,7 +21,7 @@ class SecureCrypto {
     }
 
     const passwordBuffer = new TextEncoder().encode(password);
-    
+
     const baseKey = await this.subtle.importKey(
       'raw',
       passwordBuffer,
@@ -120,6 +120,205 @@ class SecureCrypto {
     const hashBuffer = await this.subtle.digest('SHA-256', buffer);
     return this.arrayBufferToBase64(new Uint8Array(hashBuffer));
   }
+
+  // ============================================
+  // RSA FUNCTIONS (NEW)
+  // ============================================
+
+  /**
+   * Generate RSA-OAEP key pair
+   * @returns {Promise<{publicKey: string, privateKey: string}>}
+   */
+  async generateRSAKeyPair() {
+    try {
+      const keyPair = await this.subtle.generateKey(
+        {
+          name: 'RSA-OAEP',
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: 'SHA-256',
+        },
+        true,
+        ['encrypt', 'decrypt']
+      );
+
+      const publicKey = await this.subtle.exportKey('jwk', keyPair.publicKey);
+      const privateKey = await this.subtle.exportKey('jwk', keyPair.privateKey);
+
+      return {
+        publicKey: JSON.stringify(publicKey),
+        privateKey: JSON.stringify(privateKey),
+      };
+    } catch (error) {
+      throw new Error(`Key generation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Encrypt data with RSA public key
+   * @param {string} data - Data to encrypt
+   * @param {string} publicKeyJwk - Public key in JWK format (string)
+   * @returns {Promise<string>} Base64 encoded encrypted data
+   */
+  async encryptWithPublicKey(data, publicKeyJwk) {
+    try {
+      const publicKeyData = typeof publicKeyJwk === 'string' 
+        ? JSON.parse(publicKeyJwk) 
+        : publicKeyJwk;
+
+      const publicKey = await this.subtle.importKey(
+        'jwk',
+        publicKeyData,
+        {
+          name: 'RSA-OAEP',
+          hash: 'SHA-256',
+        },
+        false,
+        ['encrypt']
+      );
+
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+
+      const encryptedBuffer = await this.subtle.encrypt(
+        { name: 'RSA-OAEP' },
+        publicKey,
+        dataBuffer
+      );
+
+      return this.arrayBufferToBase64(new Uint8Array(encryptedBuffer));
+    } catch (error) {
+      throw new Error(`RSA encryption failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Decrypt data with RSA private key
+   * @param {string} encryptedData - Base64 encoded encrypted data
+   * @param {string} privateKeyJwk - Private key in JWK format (string)
+   * @returns {Promise<string>} Decrypted data
+   */
+  async decryptWithPrivateKey(encryptedData, privateKeyJwk) {
+    try {
+      const privateKeyData = typeof privateKeyJwk === 'string' 
+        ? JSON.parse(privateKeyJwk) 
+        : privateKeyJwk;
+
+      const privateKey = await this.subtle.importKey(
+        'jwk',
+        privateKeyData,
+        {
+          name: 'RSA-OAEP',
+          hash: 'SHA-256',
+        },
+        false,
+        ['decrypt']
+      );
+
+      const encryptedArray = this.base64ToArrayBuffer(encryptedData);
+
+      const decryptedBuffer = await this.subtle.decrypt(
+        { name: 'RSA-OAEP' },
+        privateKey,
+        encryptedArray
+      );
+
+      const decoder = new TextDecoder();
+      return decoder.decode(decryptedBuffer);
+    } catch (error) {
+      throw new Error(`RSA decryption failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sign data with RSA private key
+   * @param {string} data - Data to sign
+   * @param {string} privateKeyJwk - Private key in JWK format
+   * @returns {Promise<string>} Base64 encoded signature
+   */
+  async signData(data, privateKeyJwk) {
+    try {
+      const privateKeyData = typeof privateKeyJwk === 'string'
+        ? JSON.parse(privateKeyJwk)
+        : privateKeyJwk;
+
+      const privateKey = await this.subtle.importKey(
+        'jwk',
+        privateKeyData,
+        {
+          name: 'RSA-PSS',
+          hash: 'SHA-256',
+        },
+        false,
+        ['sign']
+      );
+
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+
+      const signature = await this.subtle.sign(
+        {
+          name: 'RSA-PSS',
+          saltLength: 32,
+        },
+        privateKey,
+        dataBuffer
+      );
+
+      return this.arrayBufferToBase64(new Uint8Array(signature));
+    } catch (error) {
+      throw new Error(`Signing failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verify signature with RSA public key
+   * @param {string} data - Original data
+   * @param {string} signature - Base64 encoded signature
+   * @param {string} publicKeyJwk - Public key in JWK format
+   * @returns {Promise<boolean>} True if signature is valid
+   */
+  async verifySignature(data, signature, publicKeyJwk) {
+    try {
+      const publicKeyData = typeof publicKeyJwk === 'string'
+        ? JSON.parse(publicKeyJwk)
+        : publicKeyJwk;
+
+      const publicKey = await this.subtle.importKey(
+        'jwk',
+        publicKeyData,
+        {
+          name: 'RSA-PSS',
+          hash: 'SHA-256',
+        },
+        false,
+        ['verify']
+      );
+
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+      const signatureArray = this.base64ToArrayBuffer(signature);
+
+      const isValid = await this.subtle.verify(
+        {
+          name: 'RSA-PSS',
+          saltLength: 32,
+        },
+        publicKey,
+        signatureArray,
+        dataBuffer
+      );
+
+      return isValid;
+    } catch (error) {
+      console.error('Signature verification error:', error);
+      return false;
+    }
+  }
+
+  // ============================================
+  // UTILITY FUNCTIONS
+  // ============================================
 
   arrayBufferToBase64(buffer) {
     const bytes = new Uint8Array(buffer);

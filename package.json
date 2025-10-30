@@ -39,8 +39,9 @@
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.9.0",
+    "html5-qrcode": "^2.3.8",
     "pinata": "^2.5.1",
-    "qrcode": "^1.5.3",
+    "qrcode": "^1.5.4",
     "remove": "^0.1.5",
     "three": "^0.158.0"
   }

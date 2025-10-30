@@ -2,6 +2,7 @@ import EventBus from '../utils/EventBus.js';
 import { EVENTS } from '../constants/events.js';
 import { EncryptionService } from '../services/encryption.js';
 import SecureCrypto from '../crypto/webCrypto.js';
+import BackendService from '../services/BackendService.js';
 
 export class LoginView {
   constructor() {
@@ -397,6 +398,32 @@ export class LoginView {
       user.lastLogin = Date.now();
       this.updateUser(user);
 
+      // Ensure user is registered on backend (sync local user to backend)
+      try {
+        await BackendService.registerUser({
+          username: user.username,
+          displayName: user.displayName,
+          publicKey: user.publicKey,
+          avatar: user.avatar,
+        });
+        console.log('✅ User synced to backend');
+      } catch (error) {
+        // User might already exist on backend (409 conflict), that's OK
+        if (error.response && error.response.status === 409) {
+          console.log('✅ User already exists on backend');
+        } else {
+          console.warn('⚠️ Could not sync user to backend (offline mode):', error.message);
+        }
+      }
+
+      // Set user online on backend
+      try {
+        await BackendService.setUserOnline(username, true);
+        console.log('✅ User set to online on backend');
+      } catch (error) {
+        console.warn('⚠️ Could not set online status on server:', error.message);
+      }
+
       this.showMessage('Login successful!', 'success');
 
       // Emit login event
@@ -452,7 +479,7 @@ export class LoginView {
     signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating account...</span>';
 
     try {
-      // Check if username exists
+      // Check if username exists locally
       const users = this.getStoredUsers();
       const existingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
 
@@ -460,7 +487,7 @@ export class LoginView {
         throw new Error('Username already exists');
       }
 
-      // Hash password
+      // Hash password (stored locally only - NEVER sent to server)
       const passwordHash = await EncryptionService.hashPassword(password);
 
       // Generate RSA key pair for the user
@@ -472,19 +499,33 @@ export class LoginView {
         id: this.generateUserId(),
         username: username,
         displayName: displayName,
-        passwordHash: passwordHash,
+        passwordHash: passwordHash, // NEVER send this to server
         publicKey: keyPair.publicKey,
-        privateKey: keyPair.privateKey,
+        privateKey: keyPair.privateKey, // NEVER send this to server
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
         createdAt: Date.now(),
         lastLogin: Date.now(),
       };
 
-      // Save user
+      // Save user locally (with password hash and private key)
       users.push(newUser);
       this.saveUsers(users);
 
-      // Add to online users
+      // Register user on backend (public data only)
+      try {
+        await BackendService.registerUser({
+          username: newUser.username,
+          displayName: newUser.displayName,
+          publicKey: newUser.publicKey,
+          avatar: newUser.avatar,
+        });
+        this.showMessage('Account registered on server', 'success');
+      } catch (error) {
+        console.warn('Could not register on server (offline mode):', error);
+        this.showMessage('Account created (offline mode)', 'warning');
+      }
+
+      // Add to online users cache
       this.addToOnlineUsers(newUser);
 
       this.showMessage('Account created successfully!', 'success');
@@ -514,51 +555,8 @@ export class LoginView {
       return JSON.parse(stored);
     }
 
-    // Initialize with demo accounts
-    const demoUsers = [
-      {
-        id: 'demo_alice',
-        username: 'alice',
-        displayName: 'Alice',
-        passwordHash: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', // "password"
-        publicKey: null,
-        privateKey: null,
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',
-        createdAt: Date.now() - 86400000,
-        lastLogin: Date.now(),
-      },
-      {
-        id: 'demo_bob',
-        username: 'bob',
-        displayName: 'Bob',
-        passwordHash: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', // "password"
-        publicKey: null,
-        privateKey: null,
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=bob',
-        createdAt: Date.now() - 86400000,
-        lastLogin: Date.now(),
-      }
-    ];
-
-    // Generate keys for demo users
-    this.generateDemoKeys(demoUsers);
-
-    this.saveUsers(demoUsers);
-    return demoUsers;
-  }
-
-  async generateDemoKeys(users) {
-    for (const user of users) {
-      if (!user.publicKey) {
-        try {
-          const keyPair = await SecureCrypto.generateRSAKeyPair();
-          user.publicKey = keyPair.publicKey;
-          user.privateKey = keyPair.privateKey;
-        } catch (error) {
-          console.error('Error generating demo keys:', error);
-        }
-      }
-    }
+    // Return empty array - no demo users
+    return [];
   }
 
   saveUsers(users) {
