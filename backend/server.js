@@ -29,7 +29,7 @@ app.use('/api/', limiter);
 app.use('/api/messages', messageRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),

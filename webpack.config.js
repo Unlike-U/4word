@@ -15,14 +15,14 @@ module.exports = (env, argv) => {
       clean: true,
     },
     devServer: {
-      static: {
-        directory: path.join(__dirname, 'dist'),
-      },
-      compress: true,
-      port: 9000,
-      hot: true,
-      historyApiFallback: true,
-      open: false,
+    static: { directory: path.join(__dirname, 'dist') },
+    compress: true,
+    port: 9000,
+    host: '0.0.0.0',        // ADD THIS
+    hot: true,
+    historyApiFallback: true,
+    open: false,
+    allowedHosts: 'all',    // ADD THIS
     },
     module: {
       rules: [
