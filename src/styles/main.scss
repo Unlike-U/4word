@@ -1,3 +1,4 @@
+
 // Reset and Base Styles
 * {
   margin: 0;
@@ -2090,4 +2091,21 @@ body.dark-mode {
     font-size: 9px;
     padding: 2px 6px;
   }
+}
+
+.account-section {
+    // I'll adjust only this section's layout
+    display: flex;
+    align-items: center;
+    justify-content: space-between; // or whatever arrangement you want
+}
+
+.connect-button {
+    // Replace text with icon
+    font-size: 0;
+    
+    &::before {
+        content: "🔗"; // or any icon you prefer
+        font-size: 1.2rem;
+    }
 }

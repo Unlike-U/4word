@@ -6,7 +6,6 @@ require('dotenv').config();
 
 module.exports = (env, argv) => {
   const isDevelopment = argv.mode === 'development';
-
   return {
     entry: './src/js/index.js',
     output: {
@@ -15,14 +14,14 @@ module.exports = (env, argv) => {
       clean: true,
     },
     devServer: {
-    static: { directory: path.join(__dirname, 'dist') },
-    compress: true,
-    port: 9000,
-    host: '0.0.0.0',        // ADD THIS
-    hot: true,
-    historyApiFallback: true,
-    open: false,
-    allowedHosts: 'all',    // ADD THIS
+      static: { directory: path.join(__dirname, 'dist') },
+      compress: true,
+      port: 9000,
+      host: '0.0.0.0', // ADD THIS
+      hot: true,
+      historyApiFallback: true,
+      open: false,
+      allowedHosts: 'all', // ADD THIS
     },
     module: {
       rules: [
@@ -41,7 +40,13 @@ module.exports = (env, argv) => {
           use: [
             isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
             'css-loader',
-            'sass-loader',
+            {
+              loader: 'sass-loader',
+              options: {
+                api: 'modern',
+                implementation: require('sass'),
+              },
+            },
           ],
         },
         {
