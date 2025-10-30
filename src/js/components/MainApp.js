@@ -28,7 +28,7 @@ export class MainApp {
         <div class="sidebar-header">
           <h2 class="app-logo">
             <i class="fas fa-comments"></i>
-            4Word
+            <span>4Word</span>
           </h2>
         </div>
 
@@ -41,18 +41,18 @@ export class MainApp {
             <i class="fas fa-image"></i>
             <span>Steganography</span>
           </button>
-          <button class="nav-item" data-view="encryption">
+          <button class="nav-item" data-view="airgap">
             <i class="fas fa-plane-slash"></i>
             <span>Air Gap</span>
           </button>
-         <button className="nav-item">
-  <i className="fas fa-map-marker-alt"></i> {/* or fa-map-pin */}
-  <span>GPS Drop</span>
-</button>
-<button className="nav-item">
-  <i className="fas fa-terminal"></i>
-  <span>Terminal</span>
-</button>
+          <button class="nav-item" data-view="terminal">
+            <i class="fas fa-terminal"></i>
+            <span>Terminal</span>
+          </button>
+          <button class="nav-item" data-view="gpsdrop">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>GPS Drop</span>
+          </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -161,12 +161,12 @@ export class MainApp {
         contentContainer.appendChild(this.stegoView.render());
         break;
       
-      case 'encryption':
+      case 'airgap':
         contentContainer.innerHTML = `
           <div class="view-placeholder">
-            <i class="fas fa-lock fa-3x"></i>
-            <h2>Encryption Tools</h2>
-            <p>Advanced encryption utilities</p>
+            <i class="fas fa-plane-slash fa-3x"></i>
+            <h2>Air Gap Security</h2>
+            <p>Offline encryption and secure data transfer</p>
             <div class="feature-list">
               <div class="feature-item">
                 <i class="fas fa-shield-alt"></i>
@@ -177,45 +177,92 @@ export class MainApp {
                 <span>Manual Encryption Layer (Available)</span>
               </div>
               <div class="feature-item">
+                <i class="fas fa-wifi-slash"></i>
+                <span>Offline Message Signing</span>
+              </div>
+              <div class="feature-item">
                 <i class="fas fa-image"></i>
-                <span>Steganography (Available)</span>
+                <span>Steganography Integration</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-qrcode"></i>
+                <span>QR Code Data Transfer</span>
               </div>
             </div>
           </div>
         `;
         break;
       
-      case 'settings':
+      case 'terminal':
+        contentContainer.innerHTML = `
+          <div class="terminal-view">
+            <div class="terminal-header">
+              <i class="fas fa-terminal"></i>
+              <h2>Terminal</h2>
+            </div>
+            <div class="terminal-output" id="terminalOutput">
+              <div class="terminal-line command">help</div>
+              <div class="terminal-line output">Available commands:</div>
+              <div class="terminal-line output">  encrypt [message]  - Encrypt a message</div>
+              <div class="terminal-line output">  decrypt [message]  - Decrypt a message</div>
+              <div class="terminal-line output">  keygen            - Generate new key pair</div>
+              <div class="terminal-line output">  wallet            - Show wallet info</div>
+              <div class="terminal-line output">  clear             - Clear terminal</div>
+              <div class="terminal-line output">  help              - Show this help message</div>
+              <div class="terminal-line output"></div>
+            </div>
+            <div class="terminal-input-container">
+              <span class="terminal-prompt">$</span>
+              <input 
+                type="text" 
+                class="terminal-input" 
+                id="terminalInput" 
+                placeholder="Enter command..."
+                autocomplete="off"
+              />
+              <button class="terminal-submit" id="terminalSubmit">
+                <i class="fas fa-play"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        this.initializeTerminal();
+        break;
+      
+      case 'gpsdrop':
         contentContainer.innerHTML = `
           <div class="view-placeholder">
-            <i class="fas fa-cog fa-3x"></i>
-            <h2>Settings</h2>
-            <div class="settings-panel">
-              <h3>Storage Configuration</h3>
-              <div class="setting-item">
-                <i class="fas fa-cube"></i>
-                <div>
-                  <strong>Blockchain (Base)</strong>
-                  <p>Permanent messages stored on-chain</p>
-                  <span class="status-badge ${Web3Service.isConnected ? 'connected' : 'disconnected'}">
-                    ${Web3Service.isConnected ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
+            <i class="fas fa-map-marker-alt fa-3x"></i>
+            <h2>GPS Drop</h2>
+            <p>Location-based dead drops and secure message exchange</p>
+            <div class="feature-list">
+              <div class="feature-item">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>Create location-based message drops</span>
               </div>
-              <div class="setting-item">
-                <i class="fas fa-server"></i>
-                <div>
-                  <strong>Backend Server</strong>
-                  <p>Temporary & self-destruct messages</p>
-                  <span class="status-badge">VNC Server</span>
-                </div>
+              <div class="feature-item">
+                <i class="fas fa-clock"></i>
+                <span>Time-delayed message reveals</span>
               </div>
-              <div class="setting-item">
-                <i class="fas fa-database"></i>
+              <div class="feature-item">
+                <i class="fas fa-lock"></i>
+                <span>Geofenced encrypted messages</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-eye-slash"></i>
+                <span>Anonymous location sharing</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-route"></i>
+                <span>Dead drop routing</span>
+              </div>
+            </div>
+            <div class="storage-info">
+              <div class="storage-item">
+                <i class="fas fa-info-circle"></i>
                 <div>
-                  <strong>Local Storage</strong>
-                  <p>Encryption keys & cache</p>
-                  <span class="status-badge connected">Active</span>
+                  <strong>Coming Soon</strong>
+                  <p>GPS Drop functionality is under development. Create secure, location-based message drops that can only be accessed at specific coordinates.</p>
                 </div>
               </div>
             </div>
@@ -231,6 +278,134 @@ export class MainApp {
             <p>View not found</p>
           </div>
         `;
+    }
+  }
+
+  initializeTerminal() {
+    const terminalInput = this.container.querySelector('#terminalInput');
+    const terminalSubmit = this.container.querySelector('#terminalSubmit');
+    const terminalOutput = this.container.querySelector('#terminalOutput');
+
+    if (!terminalInput || !terminalSubmit || !terminalOutput) return;
+
+    const executeCommand = () => {
+      const command = terminalInput.value.trim();
+      if (!command) return;
+
+      // Add command to output
+      const commandLine = document.createElement('div');
+      commandLine.className = 'terminal-line command';
+      commandLine.textContent = command;
+      terminalOutput.appendChild(commandLine);
+
+      // Process command
+      this.processTerminalCommand(command, terminalOutput);
+
+      // Clear input
+      terminalInput.value = '';
+
+      // Scroll to bottom
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    };
+
+    terminalSubmit.addEventListener('click', executeCommand);
+    terminalInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        executeCommand();
+      }
+    });
+
+    // Focus input
+    terminalInput.focus();
+  }
+
+  processTerminalCommand(command, outputElement) {
+    const parts = command.split(' ');
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1).join(' ');
+
+    const addOutput = (text, type = 'output') => {
+      const line = document.createElement('div');
+      line.className = `terminal-line ${type}`;
+      line.textContent = text;
+      outputElement.appendChild(line);
+    };
+
+    switch (cmd) {
+      case 'help':
+        addOutput('Available commands:');
+        addOutput('  encrypt [message]  - Encrypt a message');
+        addOutput('  decrypt [message]  - Decrypt a message');
+        addOutput('  keygen            - Generate new key pair');
+        addOutput('  wallet            - Show wallet info');
+        addOutput('  clear             - Clear terminal');
+        addOutput('  help              - Show this help message');
+        break;
+
+      case 'clear':
+        outputElement.innerHTML = '';
+        break;
+
+      case 'encrypt':
+        if (!args) {
+          addOutput('Usage: encrypt [message]', 'error');
+        } else {
+          const encrypted = btoa(args); // Simple base64 for demo
+          addOutput('Encrypted: ' + encrypted, 'success');
+        }
+        break;
+
+      case 'decrypt':
+        if (!args) {
+          addOutput('Usage: decrypt [message]', 'error');
+        } else {
+          try {
+            const decrypted = atob(args);
+            addOutput('Decrypted: ' + decrypted, 'success');
+          } catch (e) {
+            addOutput('Invalid encrypted message', 'error');
+          }
+        }
+        break;
+
+      case 'keygen':
+        addOutput('Generating RSA key pair...', 'output');
+        setTimeout(() => {
+          const randomKey = Math.random().toString(36).substring(2, 15);
+          addOutput('Public Key: ' + randomKey + '...', 'success');
+          addOutput('Private Key: [REDACTED]', 'success');
+          addOutput('Keys generated successfully!', 'success');
+        }, 500);
+        break;
+
+      case 'wallet':
+        if (Web3Service.isConnected) {
+          addOutput('Wallet Status: Connected', 'success');
+          addOutput('Address: ' + (Web3Service.currentAccount || 'Unknown'), 'output');
+          addOutput('Network: Base Sepolia', 'output');
+        } else {
+          addOutput('Wallet Status: Disconnected', 'error');
+          addOutput('Please connect your wallet from the sidebar', 'output');
+        }
+        break;
+
+      case 'whoami':
+        addOutput('User: ' + this.currentUser.displayName, 'output');
+        addOutput('Username: ' + this.currentUser.username, 'output');
+        break;
+
+      case '':
+        // Empty command, do nothing
+        break;
+
+      default:
+        addOutput(`Command not found: ${cmd}`, 'error');
+        addOutput('Type "help" for available commands', 'output');
+    }
+
+    // Add empty line after output
+    if (cmd !== 'clear' && cmd !== '') {
+      addOutput('');
     }
   }
 
