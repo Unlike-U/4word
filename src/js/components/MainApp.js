@@ -62,8 +62,6 @@ export class MainApp {
               </div>
             </div>
           </div>
-          
-          <!-- Wallet Connector -->
           <div id="walletConnectorContainer"></div>
           
           <button class="logout-btn" id="logoutBtn" title="Logout">
