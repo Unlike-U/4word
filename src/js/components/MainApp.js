@@ -42,13 +42,17 @@ export class MainApp {
             <span>Steganography</span>
           </button>
           <button class="nav-item" data-view="encryption">
-            <i class="fas fa-lock"></i>
-            <span>Encryption</span>
+            <i class="fas fa-plane-slash"></i>
+            <span>Air Gap</span>
           </button>
-          <button class="nav-item" data-view="settings">
-            <i class="fas fa-cog"></i>
-            <span>Settings</span>
-          </button>
+         <button className="nav-item">
+  <i className="fas fa-map-marker-alt"></i> {/* or fa-map-pin */}
+  <span>GPS Drop</span>
+</button>
+<button className="nav-item">
+  <i className="fas fa-terminal"></i>
+  <span>Terminal</span>
+</button>
         </nav>
 
         <div class="sidebar-footer">
