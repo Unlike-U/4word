@@ -102,15 +102,15 @@ export class ChatView {
 
       <div class="chat-input-container">
         <div class="message-type-selector">
-          <button class="message-type-btn" data-type="temporary">
-            <i class="fas fa-clock"></i>
-            <span>Temporary</span>
-            <small>Backend</small>
-          </button>
           <button class="message-type-btn active" data-type="permanent">
             <i class="fas fa-save"></i>
             <span>Permanent</span>
             <small>Blockchain</small>
+          </button>
+          <button class="message-type-btn" data-type="temporary">
+            <i class="fas fa-clock"></i>
+            <span>Temporary</span>
+            <small>Backend</small>
           </button>
           <button class="message-type-btn" data-type="self-destruct">
             <i class="fas fa-bomb"></i>
