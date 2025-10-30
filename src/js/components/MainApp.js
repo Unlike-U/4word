@@ -7,6 +7,7 @@ import { SteganographyView } from './SteganographyView.js';
 import { WalletConnector } from './WalletConnector.js';
 import Web3Service from '../services/Web3Service.js';
 import BackendService from '../services/BackendService.js';
+import { AirGapView } from './AirGapView.js';
 
 export class MainApp {
   constructor(currentUser) {
@@ -17,6 +18,7 @@ export class MainApp {
     this.stegoView = null;
     this.walletConnector = null;
     this.stateManager = StateManager;
+    this.airgapView = null;
   }
 
   render() {
@@ -162,35 +164,8 @@ export class MainApp {
         break;
       
       case 'airgap':
-        contentContainer.innerHTML = `
-          <div class="view-placeholder">
-            <i class="fas fa-plane-slash fa-3x"></i>
-            <h2>Air Gap Security</h2>
-            <p>Offline encryption and secure data transfer</p>
-            <div class="feature-list">
-              <div class="feature-item">
-                <i class="fas fa-shield-alt"></i>
-                <span>RSA End-to-End Encryption (Active)</span>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-key"></i>
-                <span>Manual Encryption Layer (Available)</span>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-wifi-slash"></i>
-                <span>Offline Message Signing</span>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-image"></i>
-                <span>Steganography Integration</span>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-qrcode"></i>
-                <span>QR Code Data Transfer</span>
-              </div>
-            </div>
-          </div>
-        `;
+        this.airgapView = new AirGapView();
+        contentContainer.appendChild(this.airgapView.render());
         break;
       
       case 'terminal':
@@ -394,6 +369,7 @@ export class MainApp {
         addOutput('Username: ' + this.currentUser.username, 'output');
         break;
 
+
       case '':
         // Empty command, do nothing
         break;
@@ -430,9 +406,14 @@ export class MainApp {
     if (this.walletConnector) {
       this.walletConnector.destroy?.();
     }
+    if (this.airgapView) {
+      this.airgapView.destroy?.();
+    }
     if (this.container) {
       this.container.remove();
       this.container = null;
     }
+
+    
   }
 }
