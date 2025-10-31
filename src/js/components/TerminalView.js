@@ -28,6 +28,8 @@ export class TerminalView {
           <i class="fas fa-terminal"></i>
           Terminal
         </h2>
+        <p class="stego-subtitle">Terminal Messages for Ultra Grade Privacy</p>
+        </div>
         
         <div class="chat-controls">
           <div class="receiver-select-container">
