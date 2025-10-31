@@ -64,14 +64,14 @@ export class TerminalView {
 
     // Form submit
     const terminalForm = this.container.querySelector('#terminalForm');
-    chatForm.addEventListener('submit', (e) => {
+    terminalForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.sendMessage();
     });
 
     // Auto-resize textarea
-    const messageInput = this.container.querySelector('#terminalInput');
-    messageInput.addEventListener('input', (e) => {
+    const terminalInput = this.container.querySelector('#terminalInput');
+    terminalInput.addEventListener('input', (e) => {
       e.target.style.height = 'auto';
       e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
     });
@@ -94,8 +94,8 @@ export class TerminalView {
   }
 
   async sendMessage() {
-    const messageInput = this.container.querySelector('#terminalInput');
-    const message = messageInput.value.trim();
+    const terminalInput = this.container.querySelector('#terminalInput');
+    const message = terminalInput.value.trim();
 
     if (!message && !this.selectedFile) {
       this.showMessage('Please enter a message or select a file', 'error');
@@ -143,8 +143,8 @@ export class TerminalView {
       this.displayMessages();
 
       // Clear input
-      messageInput.value = '';
-      messageInput.style.height = 'auto';
+      terminalInput.value = '';
+      terminalInput.style.height = 'auto';
       this.removeFile();
       
       this.showMessage('Message sent!', 'success');
