@@ -23,14 +23,13 @@ export class ChatView {
     this.container.className = 'stego-view';
 
     this.container.innerHTML = `
+    <div class="chat-view">
       <div class="stego-header">
         <h2>
           <i class="fas fa-comments"></i>
           Messages
         </h2>
         <p class="stego-subtitle">Multi Layered Encryption</p>
-        </div>
-        
         <div class="chat-controls">
           <div class="receiver-select-container">
             <label>
@@ -63,6 +62,9 @@ export class ChatView {
             </div>
           </div>
         </div>
+        </div>
+        
+
 
         <div class="filter-info">
           <i class="fas fa-info-circle"></i>
