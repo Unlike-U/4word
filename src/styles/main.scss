@@ -3223,8 +3223,17 @@ body.dark-mode {
     
     .user-info,
     .user-name,
-    .user-status {
+    .user-avatar,
+    .user-status,
+    .wallet-address,
+    .wallet-network
+    {
       display: none;
+    }
+
+    .wallet-connector {
+        padding: 0px;
+        margin: -8px;
     }
   }
   
