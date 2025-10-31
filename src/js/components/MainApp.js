@@ -5,6 +5,8 @@ import { StateManager } from '../managers/StateManager.js';
 import { ChatView } from './ChatView.js';
 import { SteganographyView } from './SteganographyView.js';
 import { AirGapView } from './AirGapView.js';
+import { TerminalView } from './TerminalView.js';
+import { GeoDropView } from './GeoDropView.js';
 import { WalletConnector } from './WalletConnector.js';
 import Web3Service from '../services/Web3Service.js';
 import BackendService from '../services/BackendService.js';
@@ -17,6 +19,8 @@ export class MainApp {
     this.chatView = null;
     this.stegoView = null;
     this.airgapView = null;
+    this.terminalView = null;
+    this.geodropView = null;
     this.walletConnector = null;
     this.stateManager = StateManager;
   }
@@ -51,9 +55,9 @@ export class MainApp {
             <i class="fas fa-terminal"></i>
             <span>Terminal</span>
           </button>
-          <button class="nav-item" data-view="gpsdrop">
+          <button class="nav-item" data-view="geodrop">
             <i class="fas fa-map-marker-alt"></i>
-            <span>GPS Drop</span>
+            <span>GEO Drop</span>
           </button>
         </nav>
 
@@ -182,6 +186,16 @@ export class MainApp {
       this.airgapView.destroy?.();
       this.airgapView = null;
     }
+    if (this.terminalView) {
+      this.terminalView.destroy?.();
+      this.terminalView = null;
+    }
+    if (this.geodropView) {
+      this.geodropView.destroy?.();
+      this.geodropView = null;
+    }
+
+    
 
     contentContainer.innerHTML = '';
 
@@ -200,8 +214,19 @@ export class MainApp {
         this.airgapView = new AirGapView(this.currentUser);
         contentContainer.appendChild(await this.airgapView.render());
         break;
-      
+
+      case 'geodrop':
+        this.geodropView = new GeoDropView(this.currentUser);
+        contentContainer.appendChild(await this.geodropView.render());
+        break;
+
       case 'terminal':
+        this.terminalView = new TerminalView(this.currentUser);
+        contentContainer.appendChild(await this.terminalView.render());
+        break;
+  
+      
+  /* case 'terminal':
         contentContainer.innerHTML = `
           <div class="terminal-view">
             <div class="terminal-header">
@@ -357,6 +382,8 @@ export class MainApp {
           </div>
         `;
         break;
+
+        */
       
       default:
         contentContainer.innerHTML = `
@@ -528,6 +555,12 @@ export class MainApp {
     }
     if (this.airgapView) {
       this.airgapView.destroy?.();
+    }
+    if (this.terminalView) {
+      this.terminalView.destroy?.();
+    }
+    if (this.geodropView) {
+      this.geodropView.destroy?.();
     }
     if (this.walletConnector) {
       this.walletConnector.destroy?.();
