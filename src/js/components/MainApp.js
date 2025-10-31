@@ -266,15 +266,94 @@ export class MainApp {
                 <span>Dead drop routing</span>
               </div>
             </div>
-            <div class="storage-info">
-              <div class="storage-item">
-                <i class="fas fa-info-circle"></i>
-                <div>
-                  <strong>Coming Soon</strong>
-                  <p>GPS Drop functionality is under development. Create secure, location-based message drops that can only be accessed at specific coordinates.</p>
-                </div>
+            <div class="chat-input-container">
+        <div class="message-type-selector">
+          <button class="message-type-btn" data-type="permanent">
+            <i class="fas fa-save"></i>
+            <span>Permanent</span>
+            <small>Blockchain</small>
+          </button>
+          <button class="message-type-btn active" data-type="temporary">
+            <i class="fas fa-clock"></i>
+            <span>Temporary</span>
+            <small>Backend</small>
+          </button>
+          <button class="message-type-btn" data-type="self-destruct">
+            <i class="fas fa-bomb"></i>
+            <span>Self-Destruct</span>
+            <small>Read Once</small>
+          </button>
+        </div>
+
+        <div class="file-preview-container" id="filePreview" style="display: none;">
+          <div class="file-preview">
+            <img id="filePreviewImage" style="display: none;">
+            <div class="file-info" id="fileInfo">
+              <i class="fas fa-file"></i>
+              <span id="fileName"></span>
+            </div>
+            <button class="remove-file-btn" id="removeFileBtn">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <form class="chat-input-form" id="chatForm">
+          <button type="button" class="attach-btn" id="attachBtn">
+            <i class="fas fa-paperclip"></i>
+          </button>
+          <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/*">
+          
+          <textarea 
+            class="chat-input" 
+            id="messageInput" 
+            placeholder="Type a message..."
+            rows="1"
+          ></textarea>
+          
+          <button type="button" class="emoji-btn" id="emojiBtn">
+            <i class="fas fa-smile"></i>
+          </button>
+          
+          <button type="submit" class="send-btn" id="sendBtn">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+
+        <div class="emoji-picker" id="emojiPicker" style="display: none;">
+          <div class="emoji-picker-tabs">
+            <button class="emoji-tab active" data-tab="emoji">
+              <i class="fas fa-smile"></i>
+              <span>Emoji</span>
+            </button>
+            <button class="emoji-tab" data-tab="gif">
+              <i class="fas fa-images"></i>
+              <span>GIF</span>
+            </button>
+          </div>
+          
+          <div class="emoji-content">
+            <div class="emoji-panel active" data-panel="emoji">
+              <div class="emoji-grid" id="emojiGrid">
+                ${this.getEmojis().map(emoji => `
+                  <button class="emoji-item" data-emoji="${emoji}">${emoji}</button>
+                `).join('')}
               </div>
             </div>
+            
+            <div class="emoji-panel" data-panel="gif">
+              <div class="gif-search">
+                <input type="text" class="gif-search-input" id="gifSearchInput" placeholder="Search GIFs...">
+                <button class="gif-search-btn" id="gifSearchBtn">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+              <div class="gif-grid" id="gifGrid">
+                <div class="gif-placeholder">Search for GIFs above</div>
+              </div>
+            </div>
+          </div>
+        </div>
           </div>
         `;
         break;
