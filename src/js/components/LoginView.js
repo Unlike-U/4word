@@ -90,6 +90,13 @@ export class LoginView {
             </form>
           </div>
 
+          <!-- AIRLOG PANEL -->
+          <div class="auth-panel active" data-panel="airlog">
+            <form id="airLogger" autocomplete="on">
+              
+            </form>
+          </div>
+
           <!-- SIGNUP PANEL -->
           <div class="auth-panel" data-panel="signup">
             <form id="signupForm" autocomplete="off">
