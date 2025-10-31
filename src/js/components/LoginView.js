@@ -27,7 +27,7 @@ export class LoginView {
             <span>Login</span>
           </button>
           <button class="auth-method-btn" data-mode="airlink">
-            <i class="fas fa-user-plus"></i>
+            <i class="fas fa-qrcode"></i>
             <span>Air Link</span>
           </button>
           <button class="auth-method-btn" data-mode="signup">
