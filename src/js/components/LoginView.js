@@ -92,9 +92,23 @@ export class LoginView {
 
           <!-- AIRLOG PANEL -->
           <div class="auth-panel active" data-panel="airlog">
-          Scan the AirLink Code on your Online device
-            <form id="airLogger" autocomplete="on">
-              
+          <p>Scan the AirLink Code on your Online device</p>
+            <form id="airLogger" autocomplete="off">
+              <label for="signupUsername">
+                  <i class="fas fa-user"></i>
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="signupUsername"
+                  name="username"
+                  placeholder="Choose a username"
+                  autocomplete="off"
+                  required
+                  minlength="3"
+                  maxlength="20"
+                  pattern="[a-zA-Z0-9_]+"
+                />
             </form>
           </div>
 
