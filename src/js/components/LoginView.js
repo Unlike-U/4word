@@ -129,6 +129,10 @@ export class LoginView {
                   maxlength="5"
                   pattern="[a-zA-Z0-9_]+"
                 />
+                <button type="submit" class="airlink-btn" id="airlinkBtn">
+                <i class="fas fa-qrcode"></i>
+                <span>AirLink</span>
+              </button>
             </form>
             
           </div>
