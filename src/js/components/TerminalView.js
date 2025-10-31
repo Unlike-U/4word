@@ -23,11 +23,11 @@ export class TerminalView {
     this.container.className = 'chat-view';
 
     this.container.innerHTML = `
-      <div class="chat-header">
-        <h2>
-          <i class="fas fa-comments"></i>
-          Messages
-        </h2>
+      <div class="terminal-view">
+            <div class="terminal-header">
+              <i class="fas fa-terminal"></i>
+              <h2>Terminal</h2>
+            </div>
         
         <div class="chat-controls">
           <div class="receiver-select-container">
