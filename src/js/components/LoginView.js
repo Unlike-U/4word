@@ -94,7 +94,7 @@ export class LoginView {
           <div class="auth-panel" data-panel="airlog">
           <p>Scan the AirLink Code on your Online device</p>
             <form id="airLogger" autocomplete="off">
-              <label for="signupUsername">
+              <label for="auth-air-link">
                   <i class="fas fa-pin"></i>
                   PIN
                 </label>
