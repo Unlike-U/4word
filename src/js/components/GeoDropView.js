@@ -28,7 +28,8 @@ export class GeoDropView {
           <i class="fas fa-map-marker-alt"></i>
             GPS Drop
         </h2>
-        
+        <p class="stego-subtitle">Messages that spawn only at custom Geopositions</p>
+        </div>
         <div class="chat-controls">
           <div class="receiver-select-container">
             <label>
