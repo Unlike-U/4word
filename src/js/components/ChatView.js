@@ -20,7 +20,7 @@ export class ChatView {
 
   render() {
     this.container = document.createElement('div');
-    this.container.className = 'chat-view';
+    this.container.className = 'stego-view';
 
     this.container.innerHTML = `
       <div class="chat-header">
