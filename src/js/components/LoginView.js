@@ -95,18 +95,18 @@ export class LoginView {
           <p>Scan the AirLink Code on your Online device</p>
             <form id="airLogger" autocomplete="off">
               <label for="signupUsername">
-                  <i class="fas fa-user"></i>
-                  Username
+                  <i class="fas fa-pin"></i>
+                  PIN
                 </label>
                 <input
                   type="text"
-                  id="signupUsername"
-                  name="username"
-                  placeholder="Choose a username"
+                  id="auth-air-link"
+                  name="auth-air-link"
+                  placeholder="Enter PIN"
                   autocomplete="off"
                   required
-                  minlength="3"
-                  maxlength="20"
+                  minlength="5"
+                  maxlength="5"
                   pattern="[a-zA-Z0-9_]+"
                 />
             </form>
