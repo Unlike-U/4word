@@ -93,6 +93,25 @@ export class LoginView {
           <!-- AIRLOG PANEL -->
           <div class="auth-panel" data-panel="airlog">
           <p>Scan the AirLink Code on your Online device</p>
+          <div class="scan-area" id="cameraScanner" style="display: block;">
+            <div class="camera-container">
+              <div id="qrReader" style="display: none;"></div>
+              <div class="camera-placeholder" id="cameraPlaceholder">
+                <i class="fas fa-camera"></i>
+                <p>Click "Start Scanner" to begin scanning</p>
+              </div>
+            </div>
+            <div class="scanner-controls">
+              <button class="airgap-btn airgap-btn-primary" id="startScanBtn">
+                <i class="fas fa-play"></i>
+                Start Scanner
+              </button>
+              <button class="airgap-btn airgap-btn-secondary" id="stopScanBtn" style="display: none;">
+                <i class="fas fa-stop"></i>
+                Stop Scanner
+              </button>
+            </div>
+          </div>
             <form id="airLogger" autocomplete="off">
               <label for="auth-air-link">
                   <i class="fas fa-pin"></i>
@@ -110,6 +129,7 @@ export class LoginView {
                   pattern="[a-zA-Z0-9_]+"
                 />
             </form>
+            
           </div>
 
           <!-- SIGNUP PANEL -->
