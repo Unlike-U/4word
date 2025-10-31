@@ -61,7 +61,6 @@ export class ChatView {
             </div>
           </div>
         </div>
-        </div>
         
 
 
