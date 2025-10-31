@@ -31,13 +31,24 @@ export class TerminalView {
         </h2>
         <p class="stego-subtitle">Terminal Messages for Ultra Grade Privacy</p>
         </div>
-
+      <div class="terminal-output" id="terminalOutput">
+              <div class="terminal-line command">help</div>
+              <div class="terminal-line output">Available commands:</div>
+              <div class="terminal-line output">  encrypt [message]  - Encrypt a message</div>
+              <div class="terminal-line output">  decrypt [message]  - Decrypt a message</div>
+              <div class="terminal-line output">  keygen            - Generate new key pair</div>
+              <div class="terminal-line output">  wallet            - Show wallet info</div>
+              <div class="terminal-line output">  whoami            - Show current user</div>
+              <div class="terminal-line output">  clear             - Clear terminal</div>
+              <div class="terminal-line output">  help              - Show this help message</div>
+              <div class="terminal-line output"></div>
+            </div>
         <form class="chat-input-form" id="chatForm">
           
           <textarea 
             class="chat-input" 
             id="messageInput" 
-            placeholder="Type a message..."
+            placeholder="$commands - List of Commands<br/>$help - help or $help <CommandName><br/>"
             rows="1"
           ></textarea>
           
