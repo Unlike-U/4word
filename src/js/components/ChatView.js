@@ -61,7 +61,7 @@ export class ChatView {
             </div>
           </div>
         </div>
-        
+        </div>
 
 
         <div class="filter-info">
