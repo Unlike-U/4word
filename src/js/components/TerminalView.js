@@ -33,29 +33,24 @@ export class TerminalView {
         </div>
       <div class="terminal-output" id="terminalOutput">
               <div class="terminal-line command">help</div>
-              <div class="terminal-line output">Available commands:</div>
-              <div class="terminal-line output">  encrypt [message]  - Encrypt a message</div>
-              <div class="terminal-line output">  decrypt [message]  - Decrypt a message</div>
-              <div class="terminal-line output">  keygen            - Generate new key pair</div>
-              <div class="terminal-line output">  wallet            - Show wallet info</div>
-              <div class="terminal-line output">  whoami            - Show current user</div>
-              <div class="terminal-line output">  clear             - Clear terminal</div>
-              <div class="terminal-line output">  help              - Show this help message</div>
+              <div class="terminal-line output">$commands - List of Commands</div>
+              <div class="terminal-line output">$help - help or $help [CommandName]</div>
+              <div class="terminal-line output">$clr - clear terminal screen</div>
               <div class="terminal-line output"></div>
             </div>
-        <form class="chat-input-form" id="chatForm">
-          
-          <textarea 
-            class="chat-input" 
-            id="messageInput" 
-            placeholder="$commands - List of Commands<br/>$help - help or $help <CommandName><br/>"
-            rows="1"
-          ></textarea>
-          
-          <button type="submit" class="send-btn" id="sendBtn">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </form>
+        <div class="terminal-input-container">
+              <span class="terminal-prompt">$</span>
+              <input 
+                type="text" 
+                class="terminal-input" 
+                id="terminalInput" 
+                placeholder="Enter command..."
+                autocomplete="off"
+              />
+              <button class="terminal-submit" id="terminalSubmit">
+                <i class="fas fa-play"></i>
+              </button>
+            </div>
       </div>
     `;
 
