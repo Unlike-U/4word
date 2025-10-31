@@ -38,8 +38,7 @@ export class TerminalView {
               <div class="terminal-line output">$clr - clear terminal screen</div>
               <div class="terminal-line output"></div>
             </div>
-        <div class="terminal-input-container">
-              <span class="terminal-prompt">$</span>
+        <form class="terminal-input-container" id="terminalForm">
               <input 
                 type="text" 
                 class="terminal-input" 
@@ -50,7 +49,7 @@ export class TerminalView {
               <button class="terminal-submit" id="terminalSubmit">
                 <i class="fas fa-play"></i>
               </button>
-            </div>
+            </form>
       </div>
     `;
 
@@ -64,14 +63,14 @@ export class TerminalView {
 
 
     // Form submit
-    const chatForm = this.container.querySelector('#chatForm');
+    const terminalForm = this.container.querySelector('#terminalForm');
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.sendMessage();
     });
 
     // Auto-resize textarea
-    const messageInput = this.container.querySelector('#messageInput');
+    const messageInput = this.container.querySelector('#terminalInput');
     messageInput.addEventListener('input', (e) => {
       e.target.style.height = 'auto';
       e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
@@ -95,7 +94,7 @@ export class TerminalView {
   }
 
   async sendMessage() {
-    const messageInput = this.container.querySelector('#messageInput');
+    const messageInput = this.container.querySelector('#terminalInput');
     const message = messageInput.value.trim();
 
     if (!message && !this.selectedFile) {
