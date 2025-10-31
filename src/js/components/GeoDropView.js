@@ -25,7 +25,7 @@ export class GeoDropView {
     this.container.innerHTML = `
       <div class="chat-header">
         <h2>
-          <i class="fas fa-map-marker-alt fa-3x"></i>
+          <i class="fas fa-map-marker-alt"></i>
             GPS Drop
         </h2>
         
