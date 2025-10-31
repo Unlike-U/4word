@@ -3159,6 +3159,20 @@ body.dark-mode {
     small {
       display: none;
     }
+    .user-info,
+    .user-name,
+    .user-avatar,
+    .user-status,
+    .wallet-address,
+    .wallet-network
+    {
+      display: none;
+    }
+
+    .wallet-connector {
+        padding: 0px;
+        margin: -8px;
+    }
   }
   
   .message-image,
