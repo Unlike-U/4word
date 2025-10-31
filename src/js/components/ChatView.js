@@ -28,6 +28,8 @@ export class ChatView {
           <i class="fas fa-comments"></i>
           Messages
         </h2>
+        <p class="stego-subtitle">Multi Layered Encryption</p>
+        </div>
         
         <div class="chat-controls">
           <div class="receiver-select-container">
