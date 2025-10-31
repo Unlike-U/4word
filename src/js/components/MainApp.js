@@ -67,12 +67,11 @@ export class MainApp {
                 Online
               </div>
             </div>
+            <button class="logout-btn" id="logoutBtn" title="Logout">
+              <i class="fas fa-sign-out-alt"></i>
+            </button>
           </div>
           <div id="walletConnectorContainer"></div>
-          
-          <button class="logout-btn" id="logoutBtn" title="Logout">
-            <i class="fas fa-sign-out-alt"></i>
-          </button>
         </div>
       </div>
 
