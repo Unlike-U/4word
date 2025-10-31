@@ -23,7 +23,6 @@ export class ChatView {
     this.container.className = 'stego-view';
 
     this.container.innerHTML = `
-    <div class="chat-view">
       <div class="stego-header">
         <h2>
           <i class="fas fa-comments"></i>
