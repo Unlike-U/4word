@@ -23,7 +23,7 @@ export class TerminalView {
     this.container.className = 'chat-view';
 
     this.container.innerHTML = `
-      <div class="chat-header">
+      <div class="stego-header">
             <h2>
           <i class="fas fa-terminal"></i>
           Terminal
