@@ -20,7 +20,7 @@ export class AirGapView {
     await this.loadUsers();
 
     this.container.innerHTML = `
-      <div class="airgap-header">
+      <div class="stego-header">
         <h2>
           <i class="fas fa-plane-slash"></i>
           Air Gap Security
