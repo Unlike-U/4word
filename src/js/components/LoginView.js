@@ -266,8 +266,8 @@ export class LoginView {
     });
 
     // Airlog form
-    const signupForm = this.container.querySelector('#airlogForm');
-    signupForm.addEventListener('submit', (e) => {
+    const airlogForm = this.container.querySelector('#airlogForm');
+    airlogForm.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleSignup(e);
     });
