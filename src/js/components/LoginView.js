@@ -26,6 +26,10 @@ export class LoginView {
             <i class="fas fa-sign-in-alt"></i>
             <span>Login</span>
           </button>
+          <button class="auth-method-btn" data-mode="airlink">
+            <i class="fas fa-user-plus"></i>
+            <span>Air Link</span>
+          </button>
           <button class="auth-method-btn" data-mode="signup">
             <i class="fas fa-user-plus"></i>
             <span>Sign Up</span>
