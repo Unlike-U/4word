@@ -23,7 +23,7 @@ export class TerminalView {
     this.container.className = 'chat-view';
 
     this.container.innerHTML = `
-      <div class="terminal-view">
+    <div class="terminal-view">
       <div class="stego-header">
             <h2>
           <i class="fas fa-terminal"></i>
@@ -31,115 +31,8 @@ export class TerminalView {
         </h2>
         <p class="stego-subtitle">Terminal Messages for Ultra Grade Privacy</p>
         </div>
-        
-        <div class="chat-controls">
-          <div class="receiver-select-container">
-            <label>
-              <i class="fas fa-user-shield"></i>
-              Send to
-            </label>
-            <select class="receiver-select" id="receiverSelect">
-              <option value="@everyone">@everyone</option>
-              ${this.getOnlineUsers().map(user => `
-                <option value="${user.username}">${user.displayName}</option>
-              `).join('')}
-            </select>
-          </div>
-
-          <div class="encryption-key-container">
-            <label>
-              <i class="fas fa-key"></i>
-              Encryption Key
-            </label>
-            <div style="display: flex; gap: 8px;">
-              <input 
-                type="password" 
-                class="encryption-key-input" 
-                id="encryptionKeyInput" 
-                placeholder="Optional manual encryption key"
-              />
-              <button class="toggle-key-btn" id="toggleKeyBtn">
-                <i class="fas fa-eye"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="filter-info">
-          <i class="fas fa-info-circle"></i>
-          Messages are filtered by selected recipient
-        </div>
-      </div>
-
-      <div class="chat-messages" id="chatMessages">
-        <div class="welcome-message">
-          <i class="fas fa-comments fa-3x"></i>
-          <h3>Welcome to 4Word</h3>
-          <p>Start a secure conversation</p>
-          
-          <div class="storage-info">
-            <div class="storage-item">
-              <i class="fas fa-cube"></i>
-              <div>
-                <strong>Permanent Messages</strong>
-                <p>Stored on blockchain forever</p>
-              </div>
-            </div>
-            <div class="storage-item">
-              <i class="fas fa-server"></i>
-              <div>
-                <strong>Temporary Messages</strong>
-                <p>Stored on backend server until read</p>
-              </div>
-            </div>
-            <div class="storage-item">
-              <i class="fas fa-bomb"></i>
-              <div>
-                <strong>Self-Destruct Messages</strong>
-                <p>Deleted immediately after reading</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-input-container">
-        <div class="message-type-selector">
-          <button class="message-type-btn" data-type="permanent">
-            <i class="fas fa-save"></i>
-            <span>Permanent</span>
-            <small>Blockchain</small>
-          </button>
-          <button class="message-type-btn active" data-type="temporary">
-            <i class="fas fa-clock"></i>
-            <span>Temporary</span>
-            <small>Backend</small>
-          </button>
-          <button class="message-type-btn" data-type="self-destruct">
-            <i class="fas fa-bomb"></i>
-            <span>Self-Destruct</span>
-            <small>Read Once</small>
-          </button>
-        </div>
-
-        <div class="file-preview-container" id="filePreview" style="display: none;">
-          <div class="file-preview">
-            <img id="filePreviewImage" style="display: none;">
-            <div class="file-info" id="fileInfo">
-              <i class="fas fa-file"></i>
-              <span id="fileName"></span>
-            </div>
-            <button class="remove-file-btn" id="removeFileBtn">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
 
         <form class="chat-input-form" id="chatForm">
-          <button type="button" class="attach-btn" id="attachBtn">
-            <i class="fas fa-paperclip"></i>
-          </button>
-          <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,application/*">
           
           <textarea 
             class="chat-input" 
@@ -148,49 +41,10 @@ export class TerminalView {
             rows="1"
           ></textarea>
           
-          <button type="button" class="emoji-btn" id="emojiBtn">
-            <i class="fas fa-smile"></i>
-          </button>
-          
           <button type="submit" class="send-btn" id="sendBtn">
             <i class="fas fa-paper-plane"></i>
           </button>
         </form>
-
-        <div class="emoji-picker" id="emojiPicker" style="display: none;">
-          <div class="emoji-picker-tabs">
-            <button class="emoji-tab active" data-tab="emoji">
-              <i class="fas fa-smile"></i>
-              <span>Emoji</span>
-            </button>
-            <button class="emoji-tab" data-tab="gif">
-              <i class="fas fa-images"></i>
-              <span>GIF</span>
-            </button>
-          </div>
-          
-          <div class="emoji-content">
-            <div class="emoji-panel active" data-panel="emoji">
-              <div class="emoji-grid" id="emojiGrid">
-                ${this.getEmojis().map(emoji => `
-                  <button class="emoji-item" data-emoji="${emoji}">${emoji}</button>
-                `).join('')}
-              </div>
-            </div>
-            
-            <div class="emoji-panel" data-panel="gif">
-              <div class="gif-search">
-                <input type="text" class="gif-search-input" id="gifSearchInput" placeholder="Search GIFs...">
-                <button class="gif-search-btn" id="gifSearchBtn">
-                  <i class="fas fa-search"></i>
-                </button>
-              </div>
-              <div class="gif-grid" id="gifGrid">
-                <div class="gif-placeholder">Search for GIFs above</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     `;
 
