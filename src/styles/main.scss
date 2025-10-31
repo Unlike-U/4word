@@ -568,7 +568,7 @@ html, body {
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 10px;
   flex-shrink: 0; // ✅ Keep footer fixed
