@@ -92,6 +92,7 @@ export class LoginView {
 
           <!-- AIRLOG PANEL -->
           <div class="auth-panel" data-panel="airlog">
+          <form id="airlog-form" autocomplete="off">
           <p>Scan the AirLink Code on your Online device</p>
           <div class="scan-area" id="cameraScanner" style="display: block;">
             <div class="camera-container">
@@ -112,7 +113,7 @@ export class LoginView {
               </button>
             </div>
           </div>
-            <form id="airLogger" autocomplete="off">
+            
               <label for="auth-air-link">
                   <i class="fas fa-pin"></i>
                   PIN
@@ -264,7 +265,14 @@ export class LoginView {
       this.handleLogin(e);
     });
 
-    // Signup form
+    // Airlog form
+    const signupForm = this.container.querySelector('#airlogForm');
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleSignup(e);
+    });
+
+        // Signup form
     const signupForm = this.container.querySelector('#signupForm');
     signupForm.addEventListener('submit', (e) => {
       e.preventDefault();
